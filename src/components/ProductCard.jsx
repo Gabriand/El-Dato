@@ -14,7 +14,7 @@ export default function ProductCard({
     };
 
     return (
-        <div className="mx-6 mt-8 mb-2 flex gap-4 lg:w-1/4 lg:mx-10 lg:mt-10 lg:mb-4 lg:gap-3">
+        <div className="mx-6 mt-8 mb-10 flex gap-4 lg:w-1/4 lg:mx-10 lg:mt-10 lg:mb-4 lg:gap-3">
             <img
                 className="w-36 h-36 object-cover rounded-2xl"
                 src={urlImg}
