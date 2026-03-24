@@ -1,6 +1,6 @@
 @import "tailwindcss";
 
-:root {
+@theme {
     --color-bg: #ffffff;
     --color-primary: #6c63ff;
     --color-secondary: #ff8a71;
@@ -13,7 +13,7 @@
     /*barra - fondos*/
     --color-tone: #f1f3ff;
 
-    --font-app: "Outfit", sans-serif;
+    --font-sans: "Outfit", sans-serif;
 }
 
 * {
@@ -21,11 +21,6 @@
 }
 
 body {
-    margin: 0;
-    background: var(--color-bg);
-    color: var(--color-text);
-    font-family: var(--font-app);
+    @apply m-0 bg-bg text-text font-sans;
     font-optical-sizing: auto;
-    font-weight: 400;
-    font-style: normal;
 }
