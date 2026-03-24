@@ -1,1 +1,31 @@
 @import "tailwindcss";
+
+:root {
+    --color-bg: #ffffff;
+    --color-primary: #6c63ff;
+    --color-secondary: #ff8a71;
+    --color-tertiary: #be6000;
+    --color-text: #111827;
+    /*Superficie - cards*/
+    --color-surface: #e5e7eb;
+    /*Etiquetas secundarias, info menos relevante*/
+    --color-muted: #64748b;
+    /*barra - fondos*/
+    --color-tone: #f1f3ff;
+
+    --font-app: "Outfit", sans-serif;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    background: var(--color-bg);
+    color: var(--color-text);
+    font-family: var(--font-app);
+    font-optical-sizing: auto;
+    font-weight: 400;
+    font-style: normal;
+}
