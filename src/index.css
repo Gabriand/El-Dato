@@ -13,6 +13,15 @@
     /*barra - fondos*/
     --color-tone: #f1f3ff;
 
+    /*background y texto de estado*/
+    --color-greenb: #e8f5e9;
+    --color-yellowb: #fffde7;
+    --color-redb: #ffebee;
+
+    --color-greent: #2ecc71;
+    --color-yellowt: #f1c40f;
+    --color-redt: #e74c3c;
+
     --font-sans: "Outfit", sans-serif;
 }
 
@@ -23,4 +32,12 @@
 body {
     @apply m-0 bg-bg text-text font-sans;
     font-optical-sizing: auto;
+}
+
+.scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+    display: none;
 }
