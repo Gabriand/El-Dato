@@ -1,7 +1,7 @@
 export default function Home() {
     return (
         <main>
-            <div className="m-5 lg:m-10 py-2 p-4 border-2 border-surface rounded-2xl flex gap-3 has-focus:border-primary has-focus:bg-tone">
+            <div className="m-5 lg:m-10 py-3 p-4 border-2 border-surface rounded-2xl flex gap-3 has-focus:border-primary has-focus:bg-tone">
                 <svg
                     className="text-primary"
                     width="22px"
