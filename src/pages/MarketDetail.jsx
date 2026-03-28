@@ -47,8 +47,12 @@ export default function MarketDetail() {
                                 Categoría: Víveres
                             </span>
                         </div>
-                        <div className="text-xl font-bold text-primary">
-                            $1.85
+                        <div className="flex flex-col items-end gap-1.5 mt-1">
+                            <span className="text-xl font-bold text-primary">$1.85</span>
+                            <div className="flex items-center gap-1 bg-surface/40 rounded-lg px-1 py-0.5">
+                                <button className="p-1 rounded text-sm text-gray-500 hover:text-green-600 hover:bg-white transition-colors cursor-pointer">👍</button>
+                                <button className="p-1 rounded text-sm text-gray-500 hover:text-red-600 hover:bg-white transition-colors cursor-pointer">👎</button>
+                            </div>
                         </div>
                     </li>
                     <li className="flex justify-between items-center group pt-2 pb-3 border-b border-surface">
@@ -58,8 +62,12 @@ export default function MarketDetail() {
                                 Categoría: Vegetales
                             </span>
                         </div>
-                        <div className="text-xl font-bold text-gray-800">
-                            $1.20
+                        <div className="flex flex-col items-end gap-1.5 mt-1">
+                            <span className="text-xl font-bold text-gray-800">$1.20</span>
+                            <div className="flex items-center gap-1 bg-surface/40 rounded-lg px-1 py-0.5">
+                                <button className="p-1 rounded text-sm text-gray-500 hover:text-green-600 hover:bg-white transition-colors cursor-pointer">👍</button>
+                                <button className="p-1 rounded text-sm text-gray-500 hover:text-red-600 hover:bg-white transition-colors cursor-pointer">👎</button>
+                            </div>
                         </div>
                     </li>
                     <li className="flex justify-between items-center group pt-2">
@@ -69,8 +77,12 @@ export default function MarketDetail() {
                                 Categoría: Lácteos
                             </span>
                         </div>
-                        <div className="text-xl font-bold text-gray-800">
-                            $2.50
+                        <div className="flex flex-col items-end gap-1.5 mt-1">
+                            <span className="text-xl font-bold text-gray-800">$2.50</span>
+                            <div className="flex items-center gap-1 bg-surface/40 rounded-lg px-1 py-0.5">
+                                <button className="p-1 rounded text-sm text-gray-500 hover:text-green-600 hover:bg-white transition-colors cursor-pointer">👍</button>
+                                <button className="p-1 rounded text-sm text-gray-500 hover:text-red-600 hover:bg-white transition-colors cursor-pointer">👎</button>
+                            </div>
                         </div>
                     </li>
                 </ul>

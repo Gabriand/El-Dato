@@ -33,14 +33,43 @@ export default function Report() {
                             className="w-full bg-surface/30 border-2 border-surface p-3 rounded-xl outline-none focus:border-primary transition-colors text-gray-700"
                         >
                             <option value="">Selecciona un producto...</option>
-                            <option value="1">Arroz Conejo 2KG</option>
-                            <option value="2">Tomate Riñón 1KG</option>
-                            <option value="3">Cebolla 1KG</option>
+                            <option value="1">Arroz Conejo</option>
+                            <option value="2">Tomate Riñón</option>
+                            <option value="3">Cebolla</option>
                             <option value="4">Limón (Malla)</option>
                         </select>
                         <button type="button" onClick={() => toast.info("El modal de nuevo producto estará disponible la próxima semana.")} className="text-left mt-0.5 text-primary text-sm font-semibold hover:underline w-max">
                             + Agregar nuevo producto
                         </button>
+                    </div>
+
+                    <div className="flex gap-4">
+                        <div className="flex flex-col gap-2 w-1/3">
+                            <label htmlFor="quantity" className="font-semibold text-gray-700">Cant.</label>
+                            <input 
+                                type="number" 
+                                id="quantity" 
+                                defaultValue="1"
+                                min="0.1"
+                                step="any"
+                                required
+                                className="w-full bg-surface/30 border-2 border-surface p-3 rounded-xl outline-none focus:border-primary transition-colors text-gray-800 text-center font-bold"
+                            />
+                        </div>
+                        <div className="flex flex-col gap-2 w-2/3">
+                            <label htmlFor="unit" className="font-semibold text-gray-700">Medida</label>
+                            <select 
+                                id="unit" 
+                                required
+                                className="w-full bg-surface/30 border-2 border-surface p-3 rounded-xl outline-none focus:border-primary transition-colors text-gray-800"
+                            >
+                                <option value="lb">Libras (lb)</option>
+                                <option value="kg">Kilos (kg)</option>
+                                <option value="unidad">Unidades</option>
+                                <option value="atado">Atados</option>
+                                <option value="litro">Litros (L)</option>
+                            </select>
+                        </div>
                     </div>
 
                     <div className="flex flex-col gap-2">

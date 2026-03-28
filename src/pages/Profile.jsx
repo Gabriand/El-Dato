@@ -33,19 +33,27 @@ export default function Profile() {
                     </div>
                 </div>
 
-                <section className="bg-white border-2 border-surface rounded-2xl p-6 shadow-sm mb-6 flex justify-between items-center">
+                <Link to="/my-reports" className="bg-white border-2 border-surface rounded-2xl p-6 shadow-sm mb-6 flex justify-between items-center cursor-pointer hover:border-primary transition-colors group">
                     <div className="flex flex-col">
-                        <span className="text-gray-500 font-semibold text-sm uppercase tracking-wide">
+                        <span className="text-gray-500 font-semibold text-sm uppercase tracking-wide group-hover:text-primary transition-colors">
                             Precios Reportados
                         </span>
                         <span className="text-3xl font-bold text-gray-800 mt-1">
                             {user.contributions}
                         </span>
                     </div>
-                    <div className="text-5xl">🏆</div>
-                </section>
+                    <div className="text-5xl group-hover:scale-110 transition-transform">🏆</div>
+                </Link>
 
                 <section className="flex flex-col gap-4">
+                    <Link to="/favorites" className="w-full flex justify-between items-center bg-white border-2 border-surface p-4 rounded-xl hover:border-yellow-400 transition-colors text-gray-700 font-semibold group cursor-pointer">
+                        <span className="flex items-center gap-3">
+                            <span className="text-xl">⭐</span>
+                            Mi Canasta Base
+                        </span>
+                        <span className="text-muted group-hover:text-yellow-500 transition-colors">→</span>
+                    </Link>
+
                     <Link to="/edit-profile" className="w-full flex justify-between items-center bg-white border-2 border-surface p-4 rounded-xl hover:border-primary transition-colors text-gray-700 font-semibold group cursor-pointer">
                         <span className="flex items-center gap-3">
                             <span className="text-xl">⚙️</span>

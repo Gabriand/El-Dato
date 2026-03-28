@@ -1,21 +1,29 @@
 import { useNavigate } from "react-router-dom";
 import NavBar from "../components/NavBar";
+import { toast } from "sonner";
 
 export default function ProductDetail() {
     const navigate = useNavigate();
 
     return (
         <div className="bg-bg min-h-screen pb-24">
-            <header className="sticky top-0 z-10 bg-white/90 backdrop-blur-md border-b border-surface px-4 py-4 flex items-center gap-4">
-                <button 
-                    onClick={() => navigate(-1)} 
-                    className="p-2 bg-surface/50 rounded-full text-gray-700 hover:text-primary transition-colors"
-                >
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7"></path>
+            <header className="sticky top-0 z-10 bg-white/90 backdrop-blur-md border-b border-surface px-4 py-4 flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                    <button 
+                        onClick={() => navigate(-1)} 
+                        className="p-2 bg-surface/50 rounded-full text-gray-700 hover:text-primary transition-colors cursor-pointer"
+                    >
+                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7"></path>
+                        </svg>
+                    </button>
+                    <h1 className="text-xl font-bold text-gray-800">Detalles</h1>
+                </div>
+                <button onClick={() => toast.success("Producto guardado en tu Canasta Base")} className="p-2.5 text-red-500 bg-red-50 hover:bg-red-100 rounded-full transition-colors cursor-pointer mr-2 shadow-sm">
+                    <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
                     </svg>
                 </button>
-                <h1 className="text-xl font-bold text-gray-800">Detalle del Producto</h1>
             </header>
             
             <main className="px-4 lg:px-10 lg:pb-10 max-w-2xl mx-auto mt-6">
@@ -50,8 +58,12 @@ export default function ProductDetail() {
                                 Más barato
                             </span>
                         </div>
-                        <div className="text-xl font-bold text-primary">
-                            $1.85
+                        <div className="flex flex-col items-end gap-1.5 mt-2">
+                            <span className="text-xl font-bold text-primary">$1.85</span>
+                            <div className="flex items-center gap-1 bg-surface/40 rounded-lg px-1 py-0.5">
+                                <button className="p-1 rounded text-sm text-gray-500 hover:text-green-600 hover:bg-white transition-colors cursor-pointer">👍</button>
+                                <button className="p-1 rounded text-sm text-gray-500 hover:text-red-600 hover:bg-white transition-colors cursor-pointer">👎</button>
+                            </div>
                         </div>
                     </li>
                     <li className="flex justify-between items-center group pt-2 pb-3 border-b border-surface">
@@ -61,8 +73,12 @@ export default function ProductDetail() {
                                 Promedio
                             </span>
                         </div>
-                        <div className="text-xl font-bold text-gray-800">
-                            $2.15
+                        <div className="flex flex-col items-end gap-1.5 mt-2">
+                            <span className="text-xl font-bold text-gray-800">$2.15</span>
+                            <div className="flex items-center gap-1 bg-surface/40 rounded-lg px-1 py-0.5">
+                                <button className="p-1 rounded text-sm text-gray-500 hover:text-green-600 hover:bg-white transition-colors cursor-pointer">👍</button>
+                                <button className="p-1 rounded text-sm text-gray-500 hover:text-red-600 hover:bg-white transition-colors cursor-pointer">👎</button>
+                            </div>
                         </div>
                     </li>
                     <li className="flex justify-between items-center group pt-2">
@@ -72,8 +88,12 @@ export default function ProductDetail() {
                                 Caro
                             </span>
                         </div>
-                        <div className="text-xl font-bold text-gray-800">
-                            $2.30
+                        <div className="flex flex-col items-end gap-1.5 mt-2">
+                            <span className="text-xl font-bold text-gray-800">$2.30</span>
+                            <div className="flex items-center gap-1 bg-surface/40 rounded-lg px-1 py-0.5">
+                                <button className="p-1 rounded text-sm text-gray-500 hover:text-green-600 hover:bg-white transition-colors cursor-pointer">👍</button>
+                                <button className="p-1 rounded text-sm text-gray-500 hover:text-red-600 hover:bg-white transition-colors cursor-pointer">👎</button>
+                            </div>
                         </div>
                     </li>
                 </ul>
