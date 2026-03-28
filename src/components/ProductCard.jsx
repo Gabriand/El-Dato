@@ -1,3 +1,5 @@
+import { Link } from "react-router-dom";
+
 export default function ProductCard({
     urlImg,
     nombreImg,
@@ -14,9 +16,9 @@ export default function ProductCard({
     };
 
     return (
-        <div className="mx-6 mt-8 mb-10 flex gap-4 lg:w-1/4 lg:mx-10 lg:mt-10 lg:mb-4 lg:gap-3">
+        <Link to="/product/1" className="mx-6 mt-8 mb-10 flex gap-4 lg:w-1/4 lg:mx-10 lg:mt-10 lg:mb-4 lg:gap-3 cursor-pointer hover:opacity-80 transition-opacity">
             <img
-                className="w-36 h-36 object-cover rounded-2xl"
+                className="w-36 h-36 shrink-0 object-cover rounded-2xl"
                 src={urlImg}
                 alt={nombreImg}
             />
@@ -76,6 +78,6 @@ export default function ProductCard({
                     </p>
                 </div>
             </div>
-        </div>
+        </Link>
     );
 }

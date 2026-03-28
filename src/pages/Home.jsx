@@ -30,7 +30,7 @@ export default function Home() {
             urlImg: "https://upload.wikimedia.org/wikipedia/commons/3/34/Two_colors_of_onions.jpg",
             nombreImg: "Cebolla",
             disponible: "Carisimo",
-            nombreProd: "Cebolla Paitena 1KG",
+            nombreProd: "Cebolla 1KG",
             lugar: "Mercado de Caraguay",
             precioActual: 1.75,
             precioAnterior: 1.5,
