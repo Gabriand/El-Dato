@@ -1,6 +1,6 @@
 export default function NavBar() {
     return (
-        <nav className="fixed bottom-3 left-2 right-2 z-30 rounded-2xl border border-surface/80 bg-white/80 shadow-lg backdrop-blur-md">
+        <nav className="fixed bottom-3 left-2 right-2 z-30 rounded-2xl border border-surface/80 bg-white/80 shadow-lg backdrop-blur-md lg:hidden">
             <div className="px-2">
                 <ul className="grid grid-cols-4">
                     <li>
