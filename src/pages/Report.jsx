@@ -1,7 +1,14 @@
 import NavBar from "../components/NavBar";
 import TopBar from "../components/TopBar";
+import { toast } from "sonner";
 
 export default function Report() {
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        toast.success("¡Mil gracias! Has ayudado a la comunidad del Guayas 🏆");
+        e.target.reset(); // Limpia los inputs para dar la sensación completa de envío
+    };
+
     return (
         <>
             <header>
@@ -16,7 +23,7 @@ export default function Report() {
                     </p>
                 </div>
 
-                <form className="flex flex-col gap-6" onSubmit={(e) => e.preventDefault()}>
+                <form className="flex flex-col gap-6" onSubmit={handleSubmit}>
                     <div className="flex flex-col gap-2">
                         <label htmlFor="product" className="font-semibold text-gray-700">
                             ¿Qué producto viste?
@@ -31,6 +38,9 @@ export default function Report() {
                             <option value="3">Cebolla 1KG</option>
                             <option value="4">Limón (Malla)</option>
                         </select>
+                        <button type="button" onClick={() => toast.info("El modal de nuevo producto estará disponible la próxima semana.")} className="text-left mt-0.5 text-primary text-sm font-semibold hover:underline w-max">
+                            + Agregar nuevo producto
+                        </button>
                     </div>
 
                     <div className="flex flex-col gap-2">
@@ -67,6 +77,9 @@ export default function Report() {
                             <option value="2">Mercado Central</option>
                             <option value="3">Mercado Caraguay</option>
                         </select>
+                        <button type="button" onClick={() => toast.info("El modal de nuevo mercado estará disponible la próxima semana.")} className="text-left mt-0.5 text-primary text-sm font-semibold hover:underline w-max">
+                            + Agregar un lugar no listado
+                        </button>
                     </div>
 
                     <button 

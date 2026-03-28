@@ -1,9 +1,12 @@
+import { useState } from "react";
 import FilterBar from "../components/FilterBar";
 import NavBar from "../components/NavBar";
 import ProductCard from "../components/ProductCard";
 import TopBar from "../components/TopBar";
+import EmptyState from "../components/EmptyState";
 
 export default function Home() {
+    const [searchTerm, setSearchTerm] = useState("");
     const productoStock = [
         {
             idProd: 1,
@@ -57,6 +60,11 @@ export default function Home() {
         },
     ];
 
+    const filteredProducts = productoStock.filter(producto => 
+        producto.nombreProd.toLowerCase().includes(searchTerm.toLowerCase()) || 
+        producto.lugar.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
     return (
         <>
             <header>
@@ -80,28 +88,37 @@ export default function Home() {
                     </svg>
                     <input
                         type="search"
-                        name="busqueda"
-                        id="busqueda"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
                         placeholder="¿Qué buscas ahorrar hoy?"
-                        className="flex-1 outline-none"
+                        className="flex-1 outline-none bg-transparent"
                     />
                 </div>
             </header>
             <main>
                 <FilterBar />
                 <section className="pb-10 lg:flex lg:flex-wrap">
-                    {productoStock.map((producto) => (
-                        <ProductCard
-                            key={producto.idProd}
-                            urlImg={producto.urlImg}
-                            nombreImg={producto.nombreImg}
-                            disponible={producto.disponible}
-                            nombreProd={producto.nombreProd}
-                            lugar={producto.lugar}
-                            precioActual={producto.precioActual}
-                            precioAnterior={producto.precioAnterior}
-                        />
-                    ))}
+                    {filteredProducts.length > 0 ? (
+                        filteredProducts.map((producto) => (
+                            <ProductCard
+                                key={producto.idProd}
+                                urlImg={producto.urlImg}
+                                nombreImg={producto.nombreImg}
+                                disponible={producto.disponible}
+                                nombreProd={producto.nombreProd}
+                                lugar={producto.lugar}
+                                precioActual={producto.precioActual}
+                                precioAnterior={producto.precioAnterior}
+                            />
+                        ))
+                    ) : (
+                        <div className="w-full pt-10">
+                            <EmptyState 
+                                title="No encontramos ese producto" 
+                                description={`Aún nadie ha reportado precios para "${searchTerm}" el día de hoy. ¡Anímate a ser el primero en aportarlo!`}
+                            />
+                        </div>
+                    )}
                 </section>
             </main>
             <NavBar />

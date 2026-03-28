@@ -1,5 +1,6 @@
 import NavBar from "../components/NavBar";
 import TopBar from "../components/TopBar";
+import { Link } from "react-router-dom";
 
 export default function Profile() {
     const user = {
@@ -45,13 +46,13 @@ export default function Profile() {
                 </section>
 
                 <section className="flex flex-col gap-4">
-                    <button className="w-full flex justify-between items-center bg-white border-2 border-surface p-4 rounded-xl hover:border-primary transition-colors text-gray-700 font-semibold group">
+                    <Link to="/edit-profile" className="w-full flex justify-between items-center bg-white border-2 border-surface p-4 rounded-xl hover:border-primary transition-colors text-gray-700 font-semibold group cursor-pointer">
                         <span className="flex items-center gap-3">
                             <span className="text-xl">⚙️</span>
                             Editar Perfil
                         </span>
                         <span className="text-muted group-hover:text-primary transition-colors">→</span>
-                    </button>
+                    </Link>
 
                     <button className="w-full flex justify-between items-center bg-white border-2 border-surface p-4 rounded-xl hover:border-red-400 hover:text-red-500 transition-colors text-gray-700 font-semibold group">
                         <span className="flex items-center gap-3">
