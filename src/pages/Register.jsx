@@ -1,29 +1,41 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
-export default function Login() {
+export default function Register() {
     const { login } = useAuth();
     const navigate = useNavigate();
 
-    const handleLogin = (e) => {
+    const handleRegister = (e) => {
         e.preventDefault();
-        // Cuando conectemos con Supabase, validaremos correo/pass o sesión OAuth
-        login(); // Simula el logeo exitoso
+        // Cuando configuremos Supabase, aquí llamaremos a supabase.auth.signUp()
+        // Por ahora simulamos que el registro fue un éxito e inicia sesión automáticamente.
+        login();
         navigate("/");
     };
 
     return (
         <main className="min-h-screen flex flex-col items-center justify-center px-6 pb-20 pt-10">
             <div className="w-full max-w-sm flex flex-col items-center">
-                <h1 className="text-primary text-5xl font-bold mb-2">El Dato</h1>
+                <h1 className="text-primary text-4xl font-bold mb-2">Crear Cuenta</h1>
                 <p className="text-muted text-center mb-10">
-                    Tu comunidad para encontrar los precios más justos.
+                    Únete a la comunidad y reporta precios justos.
                 </p>
 
-                <form className="w-full flex flex-col gap-4" onSubmit={handleLogin}>
+                <form className="w-full flex flex-col gap-4" onSubmit={handleRegister}>
+                    <div className="flex flex-col gap-1.5">
+                        <label className="font-semibold text-gray-700 ml-1">Nombre Completo</label>
+                        <input 
+                            required
+                            type="text" 
+                            placeholder="Juan Pérez"
+                            className="w-full bg-surface/30 border-2 border-surface p-3.5 rounded-xl outline-none focus:border-primary transition-colors text-gray-800"
+                        />
+                    </div>
+                    
                     <div className="flex flex-col gap-1.5">
                         <label className="font-semibold text-gray-700 ml-1">Correo Electrónico</label>
                         <input 
+                            required
                             type="email" 
                             placeholder="tu@correo.com"
                             className="w-full bg-surface/30 border-2 border-surface p-3.5 rounded-xl outline-none focus:border-primary transition-colors text-gray-800"
@@ -33,6 +45,7 @@ export default function Login() {
                     <div className="flex flex-col gap-1.5 mb-2">
                         <label className="font-semibold text-gray-700 ml-1">Contraseña</label>
                         <input 
+                            required
                             type="password" 
                             placeholder="••••••••"
                             className="w-full bg-surface/30 border-2 border-surface p-3.5 rounded-xl outline-none focus:border-primary transition-colors text-gray-800"
@@ -40,14 +53,14 @@ export default function Login() {
                     </div>
 
                     <button type="submit" className="w-full bg-primary text-white font-bold text-lg py-3.5 rounded-xl shadow-lg shadow-primary/30 hover:bg-primary/90 transition-all active:scale-95">
-                        Ingresar
+                        Registrarse
                     </button>
 
                     <div className="relative flex items-center justify-center mt-4 mb-2">
                         <div className="absolute inset-0 flex items-center">
                             <div className="w-full border-t flex-1 border-surface/80"></div>
                         </div>
-                        <div className="relative px-4 bg-bg text-sm text-muted">o continúa con</div>
+                        <div className="relative px-4 bg-bg text-sm text-muted">o regístrate con</div>
                     </div>
 
                     <button type="button" className="w-full flex items-center justify-center gap-3 bg-white border-2 border-surface text-gray-700 font-bold text-lg py-3.5 rounded-xl hover:border-gray-300 transition-all active:scale-95">
@@ -62,7 +75,7 @@ export default function Login() {
                     </button>
                     
                     <p className="text-center text-muted text-sm mt-4">
-                        ¿No tienes cuenta? <Link to="/register" className="font-bold text-primary hover:underline">Regístrate gratis</Link>
+                        ¿Ya tienes cuenta? <Link to="/login" className="font-bold text-primary hover:underline">Inicia sesión aquí</Link>
                     </p>
                 </form>
             </div>

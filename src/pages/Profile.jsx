@@ -1,8 +1,17 @@
 import NavBar from "../components/NavBar";
 import TopBar from "../components/TopBar";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 
 export default function Profile() {
+    const { logout } = useAuth();
+    const navigate = useNavigate();
+
+    const handleLogout = () => {
+        logout();
+        navigate('/');
+    };
+
     const user = {
         fullName: "Juan Perez",
         username: "@juan_ahorrador",
@@ -62,7 +71,7 @@ export default function Profile() {
                         <span className="text-muted group-hover:text-primary transition-colors">→</span>
                     </Link>
 
-                    <button className="w-full flex justify-between items-center bg-white border-2 border-surface p-4 rounded-xl hover:border-red-400 hover:text-red-500 transition-colors text-gray-700 font-semibold group">
+                    <button onClick={handleLogout} className="w-full flex justify-between items-center bg-white border-2 border-surface p-4 rounded-xl hover:border-red-400 hover:text-red-500 transition-colors text-gray-700 font-semibold group">
                         <span className="flex items-center gap-3">
                             <span className="text-xl">🚪</span>
                             Cerrar Sesión

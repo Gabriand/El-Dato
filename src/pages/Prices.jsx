@@ -37,7 +37,7 @@ export default function Prices() {
                 </div>
 
                 <div className="mb-6">
-                    <FilterBar />
+                    <FilterBar categories={["Todos", "Víveres", "Lácteos", "Carnes", "Frutas", "Aseo"]} />
                 </div>
 
                 <section className="flex flex-col gap-6 px-4 lg:px-10 lg:grid lg:grid-cols-2">

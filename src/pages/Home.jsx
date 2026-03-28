@@ -96,7 +96,7 @@ export default function Home() {
                 </div>
             </header>
             <main>
-                <FilterBar />
+                <FilterBar categories={["Todos", "Pollo", "Arroz", "Huevos", "Cebolla", "Queso"]} />
                 <section className="pb-10 lg:flex lg:flex-wrap">
                     {filteredProducts.length > 0 ? (
                         filteredProducts.map((producto) => (

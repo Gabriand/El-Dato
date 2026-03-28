@@ -11,25 +11,31 @@ import EditProfile from "./pages/EditProfile";
 import MyReports from "./pages/MyReports";
 import Favorites from "./pages/Favorites";
 import Welcome from "./pages/Welcome";
+import Register from "./pages/Register";
+import { AuthProvider } from "./context/AuthContext";
+import ProtectedRoute from "./components/ProtectedRoute";
 
 function App() {
     return (
-        <>
+        <AuthProvider>
             <Toaster richColors position="top-center" />
             <Routes>
                 <Route path="/welcome" element={<Welcome />} />
                 <Route path="/login" element={<Login />} />
+                <Route path="/register" element={<Register />} />
                 <Route path="/" element={<Home />} />
                 <Route path="/prices" element={<Prices />} />
                 <Route path="/product/:id" element={<ProductDetail />} />
                 <Route path="/market/:id" element={<MarketDetail />} />
-                <Route path="/report" element={<Report />} />
-                <Route path="/profile" element={<Profile />} />
-                <Route path="/edit-profile" element={<EditProfile />} />
-                <Route path="/my-reports" element={<MyReports />} />
-                <Route path="/favorites" element={<Favorites />} />
+                
+                {/* Rutas Privadas (Protegidas) */}
+                <Route path="/report" element={<ProtectedRoute><Report /></ProtectedRoute>} />
+                <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+                <Route path="/edit-profile" element={<ProtectedRoute><EditProfile /></ProtectedRoute>} />
+                <Route path="/my-reports" element={<ProtectedRoute><MyReports /></ProtectedRoute>} />
+                <Route path="/favorites" element={<ProtectedRoute><Favorites /></ProtectedRoute>} />
             </Routes>
-        </>
+        </AuthProvider>
     );
 }
 
