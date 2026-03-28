@@ -49,9 +49,13 @@ export default function MarketDetail() {
                         </div>
                         <div className="flex flex-col items-end gap-1.5 mt-1">
                             <span className="text-xl font-bold text-primary">$1.85</span>
-                            <div className="flex items-center gap-1 bg-surface/40 rounded-lg px-1 py-0.5">
-                                <button className="p-1 rounded text-sm text-gray-500 hover:text-green-600 hover:bg-white transition-colors cursor-pointer">👍</button>
-                                <button className="p-1 rounded text-sm text-gray-500 hover:text-red-600 hover:bg-white transition-colors cursor-pointer">👎</button>
+                            <div className="flex items-center gap-2 mt-2">
+                                <button className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-bg border border-surface text-gray-700 hover:border-green-300 hover:text-green-700 hover:bg-green-50 transition-all cursor-pointer font-bold shadow-sm text-sm active:scale-95">
+                                    <span className="text-lg">👍</span> Cierto
+                                </button>
+                                <button className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-bg border border-surface text-gray-700 hover:border-red-300 hover:text-red-700 hover:bg-red-50 transition-all cursor-pointer font-bold shadow-sm text-sm active:scale-95">
+                                    <span className="text-lg">👎</span> Falso
+                                </button>
                             </div>
                         </div>
                     </li>
@@ -64,9 +68,13 @@ export default function MarketDetail() {
                         </div>
                         <div className="flex flex-col items-end gap-1.5 mt-1">
                             <span className="text-xl font-bold text-gray-800">$1.20</span>
-                            <div className="flex items-center gap-1 bg-surface/40 rounded-lg px-1 py-0.5">
-                                <button className="p-1 rounded text-sm text-gray-500 hover:text-green-600 hover:bg-white transition-colors cursor-pointer">👍</button>
-                                <button className="p-1 rounded text-sm text-gray-500 hover:text-red-600 hover:bg-white transition-colors cursor-pointer">👎</button>
+                            <div className="flex items-center gap-2 mt-2">
+                                <button className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-bg border border-surface text-gray-700 hover:border-green-300 hover:text-green-700 hover:bg-green-50 transition-all cursor-pointer font-bold shadow-sm text-sm active:scale-95">
+                                    <span className="text-lg">👍</span> Cierto
+                                </button>
+                                <button className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-bg border border-surface text-gray-700 hover:border-red-300 hover:text-red-700 hover:bg-red-50 transition-all cursor-pointer font-bold shadow-sm text-sm active:scale-95">
+                                    <span className="text-lg">👎</span> Falso
+                                </button>
                             </div>
                         </div>
                     </li>

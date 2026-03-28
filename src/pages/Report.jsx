@@ -66,7 +66,6 @@ export default function Report() {
                                 <option value="lb">Libras (lb)</option>
                                 <option value="kg">Kilos (kg)</option>
                                 <option value="unidad">Unidades</option>
-                                <option value="atado">Atados</option>
                                 <option value="litro">Litros (L)</option>
                             </select>
                         </div>

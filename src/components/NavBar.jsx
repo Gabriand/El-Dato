@@ -5,7 +5,7 @@ export default function NavBar() {
         `w-full flex flex-col items-center justify-center gap-0.5 rounded-lg py-1.5 transition-colors ${isActive ? 'text-primary font-bold' : 'text-muted hover:text-primary'}`;
 
     return (
-        <nav className="fixed bottom-3 left-2 right-2 z-30 rounded-2xl border border-surface/80 bg-white/80 shadow-lg backdrop-blur-md lg:hidden">
+        <nav className="fixed bottom-3 left-2 right-2 z-30 rounded-2xl border border-surface/80 bg-white/80 shadow-lg backdrop-blur-md md:hidden">
             <div className="px-2">
                 <ul className="grid grid-cols-4">
                     <li>
