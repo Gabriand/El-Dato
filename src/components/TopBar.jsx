@@ -1,3 +1,5 @@
+import { Link } from "react-router-dom";
+
 export default function TopBar() {
     return (
         <div className="flex justify-between items-center mt-5 mb-4 px-4 lg:px-10">
@@ -5,10 +7,10 @@ export default function TopBar() {
                 El Dato
             </h1>
             <ul className="hidden lg:flex gap-6 font-semibold text-muted">
-                <li className="hover:text-primary cursor-pointer transition-colors">Inicio</li>
-                <li className="hover:text-primary cursor-pointer transition-colors">Precios</li>
-                <li className="hover:text-primary cursor-pointer transition-colors">Aportar</li>
-                <li className="hover:text-primary cursor-pointer transition-colors">Perfil</li>
+                <Link to="/" className="hover:text-primary cursor-pointer transition-colors">Inicio</Link>
+                <Link to="/prices" className="hover:text-primary cursor-pointer transition-colors">Precios</Link>
+                <Link to="/report" className="hover:text-primary cursor-pointer transition-colors">Aportar</Link>
+                <Link to="/profile" className="hover:text-primary cursor-pointer transition-colors">Perfil</Link>
             </ul>
         </div>
     );
