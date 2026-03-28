@@ -1,6 +1,6 @@
 export default function TopBar() {
     return (
-        <div className="flex justify-between items-center mt-5 mb-10 px-4 lg:px-10">
+        <div className="flex justify-between items-center mt-5 mb-4 px-4 lg:px-10">
             <h1 className="text-primary text-4xl lg:text-5xl font-bold">
                 El Dato
             </h1>
