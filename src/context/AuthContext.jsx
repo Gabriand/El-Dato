@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useState, useEffect } from "react";
 import { supabase } from "../services/supabaseClient";
 import { toast } from "sonner";
@@ -10,53 +11,119 @@ export function AuthProvider({ children }) {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        // Consultar sesión existente
-        supabase.auth.getSession().then(({ data: { session } }) => {
-            setUser(session?.user ?? null);
-        });
+        let isMounted = true;
 
-        // Escuchar cambios de sesión
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+        const initAuth = async () => {
+            try {
+                const {
+                    data: { session },
+                } = await supabase.auth.getSession();
+                const currentUser = session?.user ?? null;
+
+                if (isMounted) setUser(currentUser);
+
+                if (currentUser) {
+                    const { data, error } = await supabase
+                        .from("profiles")
+                        .select("*")
+                        .eq("id", currentUser.id)
+                        .single();
+
+                    if (!error && data && isMounted) {
+                        setProfile(data);
+                    } else if (isMounted) {
+                        setProfile(null);
+                    }
+                } else if (isMounted) {
+                    setProfile(null);
+                }
+            } catch (error) {
+                console.error("Error auto-login:", error);
+            } finally {
+                if (isMounted) setLoading(false);
+            }
+        };
+
+        initAuth();
+
+        const {
+            data: { subscription },
+        } = supabase.auth.onAuthStateChange(async (_event, session) => {
             const currentUser = session?.user ?? null;
-            setUser(currentUser);
+            if (isMounted) setUser(currentUser);
 
             if (currentUser) {
-                // Sacar los datos extra (nombre, ciudad) de la tabla profiles
-                const { data } = await supabase
-                    .from('profiles')
-                    .select('*')
-                    .eq('id', currentUser.id)
-                    .single();
-                setProfile(data);
+                try {
+                    const { data, error } = await supabase
+                        .from("profiles")
+                        .select("*")
+                        .eq("id", currentUser.id)
+                        .single();
+
+                    if (!error && data && isMounted) setProfile(data);
+                    else if (isMounted) setProfile(null);
+                } catch {
+                    if (isMounted) setProfile(null);
+                }
             } else {
-                setProfile(null);
+                if (isMounted) setProfile(null);
             }
-            setLoading(false);
+            if (isMounted) setLoading(false);
         });
 
-        return () => subscription.unsubscribe();
+        return () => {
+            isMounted = false;
+            subscription.unsubscribe();
+        };
     }, []);
 
     const login = async (email, password) => {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        const { error } = await supabase.auth.signInWithPassword({
+            email,
+            password,
+        });
         if (error) throw error;
     };
 
     const register = async (email, password, metaData) => {
-        const { data, error } = await supabase.auth.signUp({ 
-            email, 
+        const { data, error } = await supabase.auth.signUp({
+            email,
             password,
             options: {
-                data: metaData
-            }
+                data: metaData,
+            },
         });
         if (error) throw error;
         return data;
     };
 
     const loginWithGoogle = async () => {
-        const { error } = await supabase.auth.signInWithOAuth({ provider: 'google' });
+        const { error } = await supabase.auth.signInWithOAuth({
+            provider: "google",
+        });
         if (error) throw error;
+    };
+
+    const refreshProfile = async () => {
+        if (!user) {
+            setProfile(null);
+            return null;
+        }
+
+        try {
+            const { data, error } = await supabase
+                .from("profiles")
+                .select("*")
+                .eq("id", user.id)
+                .single();
+
+            if (error) throw error;
+            setProfile(data);
+            return data;
+        } catch (error) {
+            console.error("Error refrescando perfil:", error);
+            return null;
+        }
     };
 
     const logout = async () => {
@@ -66,7 +133,18 @@ export function AuthProvider({ children }) {
     };
 
     return (
-        <AuthContext.Provider value={{ user, profile, login, register, loginWithGoogle, logout, loading }}>
+        <AuthContext.Provider
+            value={{
+                user,
+                profile,
+                login,
+                register,
+                loginWithGoogle,
+                logout,
+                loading,
+                refreshProfile,
+            }}
+        >
             {children}
         </AuthContext.Provider>
     );

@@ -1,18 +1,33 @@
 import { Navigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { toast } from "sonner";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 
 export default function ProtectedRoute({ children }) {
-    const { user } = useAuth();
+    const { user, loading } = useAuth();
+    const notifiedRef = useRef(false);
 
     useEffect(() => {
-        if (!user) {
-            toast.error("Para poder acceder aquí debes iniciar sesión primero.", {
-                position: "top-center"
-            });
+        if (!loading && !user && !notifiedRef.current) {
+            notifiedRef.current = true;
+            toast.error(
+                "Para poder acceder aquí debes iniciar sesión primero.",
+                {
+                    position: "top-center",
+                },
+            );
         }
-    }, [user]);
+    }, [loading, user]);
+
+    if (loading) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-bg">
+                <span className="text-primary font-bold">
+                    Verificando sesión...
+                </span>
+            </div>
+        );
+    }
 
     if (!user) {
         return <Navigate to="/" replace />;
