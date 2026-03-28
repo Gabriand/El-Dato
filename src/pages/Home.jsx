@@ -1,5 +1,7 @@
 import FilterBar from "../components/FilterBar";
+import NavBar from "../components/NavBar";
 import ProductCard from "../components/ProductCard";
+import TopBar from "../components/TopBar";
 
 export default function Home() {
     const productoStock = [
@@ -58,6 +60,7 @@ export default function Home() {
     return (
         <>
             <header>
+                <TopBar />
                 <div className="m-5 lg:m-10 py-3 p-4 border-2 border-surface rounded-2xl flex gap-3 has-focus:border-primary has-focus:bg-tone">
                     <svg
                         className="text-primary"
@@ -86,7 +89,7 @@ export default function Home() {
             </header>
             <main>
                 <FilterBar />
-                <section className="pb-24 lg:flex lg:flex-wrap">
+                <section className="pb-10 lg:flex lg:flex-wrap">
                     {productoStock.map((producto) => (
                         <ProductCard
                             key={producto.idProd}
@@ -101,6 +104,7 @@ export default function Home() {
                     ))}
                 </section>
             </main>
+            <NavBar />
         </>
     );
 }
