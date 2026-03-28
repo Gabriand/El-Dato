@@ -1,6 +1,16 @@
 import { NavLink, Link } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
+import { toast } from "sonner";
 
 export default function TopBar() {
+    const { user } = useAuth();
+
+    const handleProtectedClick = (e) => {
+        if (!user) {
+            e.preventDefault();
+            toast.error("Para poder acceder aquí debes iniciar sesión primero.", { position: "top-center" });
+        }
+    };
     const navItemClass = ({ isActive }) => 
         `cursor-pointer transition-colors py-1 ${isActive ? 'text-primary border-b-2 border-primary' : 'hover:text-primary'}`;
 
@@ -12,8 +22,8 @@ export default function TopBar() {
             <ul className="hidden md:flex gap-8 font-bold text-gray-500 text-lg items-center mt-2">
                 <NavLink to="/" end className={navItemClass}>Inicio</NavLink>
                 <NavLink to="/prices" className={navItemClass}>Precios</NavLink>
-                <NavLink to="/report" className={navItemClass}>Aportar</NavLink>
-                <NavLink to="/profile" className={navItemClass}>Perfil</NavLink>
+                <NavLink to="/report" onClick={handleProtectedClick} className={navItemClass}>Aportar</NavLink>
+                <NavLink to={user ? "/profile" : "/login"} className={navItemClass}>{user ? "Perfil" : "Ingresar"}</NavLink>
             </ul>
         </div>
     );

@@ -1,72 +1,52 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import FilterBar from "../components/FilterBar";
 import NavBar from "../components/NavBar";
 import ProductCard from "../components/ProductCard";
 import TopBar from "../components/TopBar";
 import EmptyState from "../components/EmptyState";
+import { getRecentReports } from "../services/api";
+import { useAuth } from "../context/AuthContext";
 
 export default function Home() {
+    const { profile } = useAuth();
     const [searchTerm, setSearchTerm] = useState("");
-    const productoStock = [
-        {
-            idProd: 1,
-            urlImg: "https://www.gastronomiavasca.net/uploads/image/file/3900/arroz_basmati.jpg",
-            nombreImg: "Arroz",
-            disponible: "Regalado",
-            nombreProd: "Arroz Conejo 2KG",
-            lugar: "Mercado Sauces 9",
-            precioActual: 1.85,
-            precioAnterior: 2.15,
-        },
-        {
-            idProd: 2,
-            urlImg: "https://cdn.wikifarmer.com/images/thumbnail/2020/11/Beneficios-del-tomate-%E2%80%93-aportes-nutricionales-del-tomate-1200x630.jpg",
-            nombreImg: "Tomate",
-            disponible: "En algo",
-            nombreProd: "Tomate Rinon 1KG",
-            lugar: "Mercado Central",
-            precioActual: 1.2,
-            precioAnterior: 1.35,
-        },
-        {
-            idProd: 3,
-            urlImg: "https://upload.wikimedia.org/wikipedia/commons/3/34/Two_colors_of_onions.jpg",
-            nombreImg: "Cebolla",
-            disponible: "Carisimo",
-            nombreProd: "Cebolla 1KG",
-            lugar: "Mercado de Caraguay",
-            precioActual: 1.75,
-            precioAnterior: 1.5,
-        },
-        {
-            idProd: 4,
-            urlImg: "https://agrotendencia.tv/wp-content/uploads/2018/12/AgenciaUN_0909_1_40-1080x675.jpg",
-            nombreImg: "Banano",
-            disponible: "Regalado",
-            nombreProd: "Banano 1KG",
-            lugar: "Mercado de Florida",
-            precioActual: 0.95,
-            precioAnterior: 1.1,
-        },
-        {
-            idProd: 5,
-            urlImg: "https://ichef.bbci.co.uk/ace/ws/640/amz/worldservice/live/assets/images/2014/11/05/141105131956_leche_624x351_thinkstock.jpg.webp",
-            nombreImg: "Leche",
-            disponible: "En algo",
-            nombreProd: "Leche Entera 1L",
-            lugar: "Mercado Central",
-            precioActual: 1.25,
-            precioAnterior: 1.4,
-        },
-    ];
+    const [reports, setReports] = useState([]);
+    const [isLoading, setIsLoading] = useState(true);
 
-    const filteredProducts = productoStock.filter(producto => 
-        producto.nombreProd.toLowerCase().includes(searchTerm.toLowerCase()) || 
-        producto.lugar.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    // Simplificaremos las categorías iniciales al MVP
+    // Más adelante se pueden cargar desde supabase.from('categories')
+    const [activeCategory, setActiveCategory] = useState("Todos");
+
+    useEffect(() => {
+        const fetchReports = async () => {
+            setIsLoading(true);
+            try {
+                // Default 'gye', pero usa la del perfil si existe
+                const userCity = profile?.city || 'gye';
+                const data = await getRecentReports(userCity);
+                setReports(data || []);
+            } catch (error) {
+                console.error("Error cargando reportes:", error);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        // Solo carga si profile ya se ha inicializado o si estamos como invitados (null)
+        if (profile !== undefined) {
+             fetchReports();
+        }
+    }, [profile]);
+
+    const filteredReports = reports.filter(report => {
+        const matchesCategory = activeCategory === "Todos" || report.products.name.toLowerCase().includes(activeCategory.toLowerCase());
+        const matchesSearch = report.products.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                              report.markets.name.toLowerCase().includes(searchTerm.toLowerCase());
+        return matchesCategory && matchesSearch;
+    });
 
     return (
-        <>
+        <div className="bg-bg min-h-screen">
             <header>
                 <TopBar />
                 <div className="m-5 lg:m-10 py-3 p-4 border-2 border-surface rounded-2xl flex gap-3 has-focus:border-primary has-focus:bg-tone">
@@ -81,9 +61,9 @@ export default function Home() {
                         <path
                             d="M14.9536 14.9458L21 21M17 10C17 13.866 13.866 17 10 17C6.13401 17 3 13.866 3 10C3 6.13401 6.13401 3 10 3C13.866 3 17 6.13401 17 10Z"
                             stroke="currentColor"
-                            stroke-width="2"
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
                         />
                     </svg>
                     <input
@@ -96,32 +76,43 @@ export default function Home() {
                 </div>
             </header>
             <main>
-                <FilterBar categories={["Todos", "Pollo", "Arroz", "Huevos", "Cebolla", "Queso"]} />
+                <div onClick={(e) => {
+                    const btn = e.target.closest('button');
+                    if (btn) setActiveCategory(btn.textContent.trim());
+                }}>
+                    <FilterBar categories={["Todos", "Arroz", "Queso", "Tomate", "Limón"]} />
+                </div>
+                
                 <section className="pb-10 lg:flex lg:flex-wrap">
-                    {filteredProducts.length > 0 ? (
-                        filteredProducts.map((producto) => (
+                    {isLoading ? (
+                        <div className="w-full pt-10 flex justify-center text-muted font-bold">
+                            Cargando reportes de tu localidad...
+                        </div>
+                    ) : filteredReports.length > 0 ? (
+                        filteredReports.map((report) => (
                             <ProductCard
-                                key={producto.idProd}
-                                urlImg={producto.urlImg}
-                                nombreImg={producto.nombreImg}
-                                disponible={producto.disponible}
-                                nombreProd={producto.nombreProd}
-                                lugar={producto.lugar}
-                                precioActual={producto.precioActual}
-                                precioAnterior={producto.precioAnterior}
+                                key={report.id}
+                                idProd={report.products.id}
+                                urlImg={report.products.image_url}
+                                nombreImg={report.products.name}
+                                disponible="Confirmado"
+                                nombreProd={`${report.products.name} ${report.quantity} ${report.products.unit}`}
+                                lugar={report.markets.name}
+                                precioActual={report.price}
+                                precioAnterior={null}
                             />
                         ))
                     ) : (
                         <div className="w-full pt-10">
                             <EmptyState 
-                                title="No encontramos ese producto" 
-                                description={`Aún nadie ha reportado precios para "${searchTerm}" el día de hoy. ¡Anímate a ser el primero en aportarlo!`}
+                                title="No hay reportes recientes" 
+                                description={searchTerm ? `Aún nadie ha reportado precios para "${searchTerm}" el día de hoy en tu localidad.` : `Aún no hay reportes en tu ciudad de esta categoría.`}
                             />
                         </div>
                     )}
                 </section>
             </main>
             <NavBar />
-        </>
+        </div>
     );
 }

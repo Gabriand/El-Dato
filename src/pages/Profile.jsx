@@ -4,7 +4,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
 export default function Profile() {
-    const { logout } = useAuth();
+    const { logout, profile } = useAuth();
     const navigate = useNavigate();
 
     const handleLogout = () => {
@@ -12,16 +12,10 @@ export default function Profile() {
         navigate('/');
     };
 
-    const user = {
-        fullName: "Juan Perez",
-        username: "@juan_ahorrador",
-        city: "Guayaquil",
-        contributions: 14,
-        avatarUrl: "https://ui-avatars.com/api/?name=Juan+Perez&background=random"
-    };
+    const fallBackAvatar = `https://ui-avatars.com/api/?name=${profile?.username || 'U'}&background=random`;
 
     return (
-        <>
+        <div className="bg-bg min-h-screen">
             <header>
                 <TopBar />
             </header>
@@ -29,16 +23,19 @@ export default function Profile() {
             <main className="px-4 pb-24 lg:px-10 lg:pb-10 max-w-2xl mx-auto">
                 <div className="flex flex-col items-center mt-6 mb-10">
                     <img 
-                        src={user.avatarUrl} 
+                        src={profile?.avatar_url || fallBackAvatar} 
                         alt="Avatar" 
-                        className="w-28 h-28 rounded-full shadow-md border-4 border-white mb-4"
+                        className="w-28 h-28 rounded-full shadow-md border-4 border-white mb-4 object-cover"
                     />
-                    <h2 className="text-3xl font-bold text-gray-800">{user.fullName}</h2>
-                    <p className="text-muted text-lg">{user.username}</p>
+                    <h2 className="text-3xl font-bold text-gray-800">
+                        {profile?.username ? `@${profile.username}` : 'Usuario Local'}
+                    </h2>
                     
-                    <div className="flex items-center gap-2 mt-2 bg-tone/50 px-4 py-1.5 rounded-full">
+                    <div className="flex items-center gap-2 mt-3 bg-tone/50 px-4 py-1.5 rounded-full">
                         <span>📍</span>
-                        <span className="font-semibold text-primary">{user.city}</span>
+                        <span className="font-semibold text-primary uppercase text-sm">
+                            {profile?.city === 'gye' ? 'Guayaquil' : profile?.city === 'uio' ? 'Quito' : profile?.city === 'cue' ? 'Cuenca' : 'Localidad'}
+                        </span>
                     </div>
                 </div>
 
@@ -48,7 +45,7 @@ export default function Profile() {
                             Precios Reportados
                         </span>
                         <span className="text-3xl font-bold text-gray-800 mt-1">
-                            {user.contributions}
+                            --
                         </span>
                     </div>
                     <div className="text-5xl group-hover:scale-110 transition-transform">🏆</div>
@@ -82,6 +79,6 @@ export default function Profile() {
             </main>
             
             <NavBar />
-        </>
+        </div>
     );
 }

@@ -1,15 +1,62 @@
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams, Link } from "react-router-dom";
 import NavBar from "../components/NavBar";
+import { toast } from "sonner";
+import { useAuth } from "../context/AuthContext";
+import { useState, useEffect } from "react";
+import { getMarketById } from "../services/api";
 
 export default function MarketDetail() {
+    const { id } = useParams();
     const navigate = useNavigate();
+    const { user } = useAuth();
+
+    const [market, setMarket] = useState(null);
+    const [reports, setReports] = useState([]);
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+        const loadMarket = async () => {
+            setIsLoading(true);
+            try {
+                const { market, reports } = await getMarketById(id);
+                setMarket(market);
+                setReports(reports);
+            } catch (error) {
+                console.error(error);
+                toast.error("El mercado no pudo ser cargado.");
+                navigate("/");
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        loadMarket();
+    }, [id, navigate]);
+
+    const handleVote = () => {
+        if (!user) {
+            toast.info("Inicia sesión para poder validar precios", { position: "top-center" });
+            return;
+        }
+        toast.success("Voto registrado con éxito", { position: "top-center" });
+    };
+
+    if (isLoading) {
+        return (
+            <div className="bg-bg min-h-screen pb-24 flex items-center justify-center">
+                <span className="text-primary font-bold">Cargando mercado...</span>
+            </div>
+        );
+    }
+
+    if (!market) return null;
 
     return (
         <div className="bg-bg min-h-screen pb-24">
             <header className="sticky top-0 z-10 bg-white/90 backdrop-blur-md border-b border-surface px-4 py-4 flex items-center gap-4">
                 <button 
                     onClick={() => navigate(-1)} 
-                    className="p-2 bg-surface/50 rounded-full text-gray-700 hover:text-primary transition-colors"
+                    className="p-2 bg-surface/50 rounded-full text-gray-700 hover:text-primary transition-colors cursor-pointer"
                 >
                     <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7"></path>
@@ -27,77 +74,49 @@ export default function MarketDetail() {
                         </svg>
                     </div>
                     <div>
-                        <h2 className="text-2xl font-bold text-gray-800">Mercado Sauces 9</h2>
-                        <span className="text-muted font-semibold text-sm">Norte de Guayaquil</span>
+                        <h2 className="text-2xl font-bold text-gray-800">{market.name}</h2>
+                        <span className="text-muted font-semibold text-sm uppercase">Localidad: {market.city === 'gye' ? 'Guayaquil' : market.city === 'uio' ? 'Quito' : market.city === 'cue' ? 'Cuenca' : market.city}</span>
                     </div>
                 </div>
 
                 <div className="bg-tone/50 border border-tone p-4 rounded-2xl shadow-sm flex items-center justify-between mb-8">
-                    <span className="text-gray-700 font-bold">14 aportes hoy</span>
+                    <span className="text-gray-700 font-bold">{reports.length} reportes hoy</span>
                     <span className="text-xs px-2 py-1 rounded-md text-greent bg-greenb font-semibold">Abierto</span>
                 </div>
 
-                <h3 className="text-lg font-bold text-gray-800 mb-4 px-1">Mejores Precios ("Regalados")</h3>
+                <h3 className="text-lg font-bold text-gray-800 mb-4 px-1">Últimos Aportes</h3>
                 
-                <ul className="flex flex-col gap-3 bg-white border-2 border-surface p-5 rounded-2xl shadow-sm">
-                    <li className="flex justify-between items-center group border-b border-surface pb-3">
-                        <div className="flex flex-col">
-                            <span className="font-semibold text-gray-700">Arroz Conejo 2KG</span>
-                            <span className="text-xs text-muted mt-1">
-                                Categoría: Víveres
-                            </span>
-                        </div>
-                        <div className="flex flex-col items-end gap-1.5 mt-1">
-                            <span className="text-xl font-bold text-primary">$1.85</span>
-                            <div className="flex items-center gap-2 mt-2">
-                                <button className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-bg border border-surface text-gray-700 hover:border-green-300 hover:text-green-700 hover:bg-green-50 transition-all cursor-pointer font-bold shadow-sm text-sm active:scale-95">
-                                    <span className="text-lg">👍</span> Cierto
-                                </button>
-                                <button className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-bg border border-surface text-gray-700 hover:border-red-300 hover:text-red-700 hover:bg-red-50 transition-all cursor-pointer font-bold shadow-sm text-sm active:scale-95">
-                                    <span className="text-lg">👎</span> Falso
-                                </button>
-                            </div>
-                        </div>
-                    </li>
-                    <li className="flex justify-between items-center group pt-2 pb-3 border-b border-surface">
-                        <div className="flex flex-col">
-                            <span className="font-semibold text-gray-700">Tomate Riñón 1KG</span>
-                            <span className="text-xs text-muted mt-1">
-                                Categoría: Vegetales
-                            </span>
-                        </div>
-                        <div className="flex flex-col items-end gap-1.5 mt-1">
-                            <span className="text-xl font-bold text-gray-800">$1.20</span>
-                            <div className="flex items-center gap-2 mt-2">
-                                <button className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-bg border border-surface text-gray-700 hover:border-green-300 hover:text-green-700 hover:bg-green-50 transition-all cursor-pointer font-bold shadow-sm text-sm active:scale-95">
-                                    <span className="text-lg">👍</span> Cierto
-                                </button>
-                                <button className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-bg border border-surface text-gray-700 hover:border-red-300 hover:text-red-700 hover:bg-red-50 transition-all cursor-pointer font-bold shadow-sm text-sm active:scale-95">
-                                    <span className="text-lg">👎</span> Falso
-                                </button>
-                            </div>
-                        </div>
-                    </li>
-                    <li className="flex justify-between items-center group pt-2">
-                        <div className="flex flex-col">
-                            <span className="font-semibold text-gray-700">Queso Fresco 500g</span>
-                            <span className="text-xs text-muted mt-1">
-                                Categoría: Lácteos
-                            </span>
-                        </div>
-                        <div className="flex flex-col items-end gap-1.5 mt-1">
-                            <span className="text-xl font-bold text-gray-800">$2.50</span>
-                            <div className="flex items-center gap-2 mt-2">
-                                <button className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-bg border border-surface text-gray-700 hover:border-green-300 hover:text-green-700 hover:bg-green-50 transition-all cursor-pointer font-bold shadow-sm text-sm active:scale-95">
-                                    <span className="text-lg">👍</span> Cierto
-                                </button>
-                                <button className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-bg border border-surface text-gray-700 hover:border-red-300 hover:text-red-700 hover:bg-red-50 transition-all cursor-pointer font-bold shadow-sm text-sm active:scale-95">
-                                    <span className="text-lg">👎</span> Falso
-                                </button>
-                            </div>
-                        </div>
-                    </li>
-                </ul>
+                {reports.length > 0 ? (
+                    <ul className="flex flex-col gap-3 bg-white border-2 border-surface p-5 rounded-2xl shadow-sm">
+                        {reports.map((report, idx) => (
+                            <li key={report.id} className={`flex justify-between items-center group pt-2 pb-3 ${idx < reports.length - 1 ? 'border-b border-surface' : ''}`}>
+                                <div className="flex flex-col">
+                                    <Link to={`/product/${report.products.id}`} className="font-semibold text-gray-700 hover:text-primary transition-colors cursor-pointer">
+                                        {report.products.name} ({report.quantity} {report.products.unit})
+                                    </Link>
+                                    <span className="text-xs text-muted mt-1 font-semibold">
+                                        Reportado recientemente
+                                    </span>
+                                </div>
+                                <div className="flex flex-col items-end gap-1.5 mt-1">
+                                    <span className="text-xl font-bold text-primary">${parseFloat(report.price).toFixed(2)}</span>
+                                    <div className="flex items-center gap-2 mt-2">
+                                        <button onClick={handleVote} className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-bg border border-surface text-gray-700 hover:border-green-300 hover:text-green-700 hover:bg-green-50 transition-all cursor-pointer font-bold shadow-sm text-sm active:scale-95">
+                                            <span className="text-lg">👍</span> Cierto
+                                        </button>
+                                        <button onClick={handleVote} className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-bg border border-surface text-gray-700 hover:border-red-300 hover:text-red-700 hover:bg-red-50 transition-all cursor-pointer font-bold shadow-sm text-sm active:scale-95">
+                                            <span className="text-lg">👎</span> Falso
+                                        </button>
+                                    </div>
+                                </div>
+                            </li>
+                        ))}
+                    </ul>
+                ) : (
+                    <div className="bg-white border-2 border-surface p-5 rounded-2xl shadow-sm text-center text-muted">
+                        Aún no hay reportes para este mercado.
+                    </div>
+                )}
             </main>
             
             <NavBar />

@@ -1,6 +1,16 @@
 import { NavLink } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
+import { toast } from "sonner";
 
 export default function NavBar() {
+    const { user } = useAuth();
+
+    const handleProtectedClick = (e) => {
+        if (!user) {
+            e.preventDefault();
+            toast.error("Para poder acceder aquí debes iniciar sesión primero.", { position: "top-center" });
+        }
+    };
     const navItemClass = ({ isActive }) => 
         `w-full flex flex-col items-center justify-center gap-0.5 rounded-lg py-1.5 transition-colors ${isActive ? 'text-primary font-bold' : 'text-muted hover:text-primary'}`;
 
@@ -30,7 +40,7 @@ export default function NavBar() {
                         </NavLink>
                     </li>
                     <li>
-                        <NavLink to="/report" aria-label="Aportar" className={navItemClass}>
+                        <NavLink to="/report" aria-label="Aportar" onClick={handleProtectedClick} className={navItemClass}>
                             <svg className="w-7 h-7" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                 <path d="M12 8V16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                                 <path d="M8 12H16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -40,12 +50,12 @@ export default function NavBar() {
                         </NavLink>
                     </li>
                     <li>
-                        <NavLink to="/profile" aria-label="Perfil" className={navItemClass}>
+                        <NavLink to={user ? "/profile" : "/login"} aria-label={user ? "Perfil" : "Ingresar"} className={navItemClass}>
                             <svg className="w-7 h-7" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                 <circle cx="12" cy="8" r="4" stroke="currentColor" strokeWidth="2"/>
                                 <path d="M4 20C4 16.6863 7.58172 14 12 14C16.4183 14 20 16.6863 20 20" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                             </svg>
-                            <span className="text-xs font-semibold">Perfil</span>
+                            <span className="text-xs font-semibold">{user ? "Perfil" : "Ingresar"}</span>
                         </NavLink>
                     </li>
                 </ul>

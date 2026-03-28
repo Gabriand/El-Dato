@@ -1,9 +1,75 @@
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import NavBar from "../components/NavBar";
 import { toast } from "sonner";
+import { useAuth } from "../context/AuthContext";
+import { useState, useEffect } from "react";
+import { getProductById } from "../services/api";
 
 export default function ProductDetail() {
+    const { id } = useParams();
     const navigate = useNavigate();
+    const { user, profile } = useAuth();
+
+    const [product, setProduct] = useState(null);
+    const [reports, setReports] = useState([]);
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+        const loadProduct = async () => {
+            setIsLoading(true);
+            try {
+                const userCity = profile?.city || 'gye';
+                const { product, reports } = await getProductById(id, userCity);
+                setProduct(product);
+                setReports(reports);
+            } catch (error) {
+                console.error(error);
+                toast.error("El producto no pudo ser cargado.");
+                navigate("/");
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        if (profile !== undefined) {
+            loadProduct();
+        }
+    }, [id, profile, navigate]);
+
+    const handleVote = () => {
+        if (!user) {
+            toast.info("Inicia sesión para poder validar precios", { position: "top-center" });
+            return;
+        }
+        toast.success("Voto registrado con éxito", { position: "top-center" });
+    };
+
+    const handleSave = () => {
+        if (!user) {
+            toast.info("Inicia sesión para guardar productos", { position: "top-center" });
+            return;
+        }
+        toast.success("Producto guardado en tu Canasta Base", { position: "top-center" });
+    };
+
+    // Cálculos
+    const averagePrice = reports.length > 0
+        ? reports.reduce((acc, curr) => acc + parseFloat(curr.price), 0) / reports.length
+        : 0;
+
+    const minPrice = reports.length > 0
+        ? Math.min(...reports.map(r => parseFloat(r.price)))
+        : 0;
+
+    if (isLoading) {
+        return (
+            <div className="bg-bg min-h-screen pb-24 flex items-center justify-center">
+                <span className="text-primary font-bold">Cargando detalles...</span>
+            </div>
+        );
+    }
+
+    if (!product) return null;
 
     return (
         <div className="bg-bg min-h-screen pb-24">
@@ -19,7 +85,7 @@ export default function ProductDetail() {
                     </button>
                     <h1 className="text-xl font-bold text-gray-800">Detalles</h1>
                 </div>
-                <button onClick={() => toast.success("Producto guardado en tu Canasta Base")} className="p-2.5 text-red-500 bg-red-50 hover:bg-red-100 rounded-full transition-colors cursor-pointer mr-2 shadow-sm">
+                <button onClick={handleSave} className="p-2.5 text-red-500 bg-red-50 hover:bg-red-100 rounded-full transition-colors cursor-pointer mr-2 shadow-sm">
                     <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
                         <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
                     </svg>
@@ -28,87 +94,73 @@ export default function ProductDetail() {
             
             <main className="px-4 lg:px-10 lg:pb-10 max-w-2xl mx-auto mt-6">
                 <div className="flex bg-white border-2 border-surface p-4 rounded-2xl shadow-sm items-center gap-4 mb-8">
-                    <div className="w-20 h-20 bg-surface/50 rounded-xl flex items-center justify-center shrink-0">
-                        <span className="text-4xl">🍚</span>
+                    <div className="w-20 h-20 bg-surface/50 rounded-xl flex items-center justify-center shrink-0 overflow-hidden">
+                        {product.image_url ? (
+                            <img src={product.image_url} alt={product.name} className="w-full h-full object-cover" />
+                        ) : (
+                            <span className="text-4xl">🛒</span>
+                        )}
                     </div>
                     <div>
-                        <h2 className="text-2xl font-bold text-gray-800">Arroz Conejo 2KG</h2>
-                        <span className="text-muted font-semibold text-sm">Categoría: Víveres</span>
+                        <h2 className="text-2xl font-bold text-gray-800">{product.name}</h2>
+                        {/* Se puede cargar la categoria dinamicamente luego, por ahora dejamos un fallback para el hackathon */}
+                        <span className="text-muted font-semibold text-sm">Medida: {product.unit}</span>
                     </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4 mb-8">
                     <div className="bg-white border-2 border-surface p-4 rounded-2xl shadow-sm flex flex-col items-center justify-center text-center">
-                        <p className="text-muted text-sm font-semibold mb-1">Precio Promedio</p>
-                        <p className="text-2xl font-bold text-gray-800">$2.10</p>
+                        <p className="text-muted text-sm font-semibold mb-1">Promedio Hoy</p>
+                        <p className="text-2xl font-bold text-gray-800">${averagePrice.toFixed(2)}</p>
                     </div>
                     <div className="bg-greenb border-2 border-greent/20 p-4 rounded-2xl shadow-sm flex flex-col items-center justify-center text-center">
                         <p className="text-greent text-sm font-semibold mb-1">Más Barato</p>
-                        <p className="text-2xl font-bold text-greent">$1.85</p>
+                        <p className="text-2xl font-bold text-greent">${minPrice.toFixed(2)}</p>
                     </div>
                 </div>
 
                 <h3 className="text-lg font-bold text-gray-800 mb-4 px-1">Precios Reportados Hoy</h3>
                 
-                <ul className="flex flex-col gap-3 bg-white border-2 border-surface p-5 rounded-2xl shadow-sm">
-                    <li className="flex justify-between items-center group border-b border-surface pb-3">
-                        <div className="flex flex-col">
-                            <span className="font-semibold text-gray-700">Mercado Sauces 9</span>
-                            <span className="text-xs px-2 py-0.5 rounded-md w-max mt-1 text-greent bg-greenb">
-                                Más barato
-                            </span>
-                        </div>
-                        <div className="flex flex-col items-end gap-1.5 mt-2">
-                            <span className="text-xl font-bold text-primary">$1.85</span>
-                            <div className="flex items-center gap-2 mt-2">
-                                <button className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-bg border border-surface text-gray-700 hover:border-green-300 hover:text-green-700 hover:bg-green-50 transition-all cursor-pointer font-bold shadow-sm text-sm active:scale-95">
-                                    <span className="text-lg">👍</span> Cierto
-                                </button>
-                                <button className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-bg border border-surface text-gray-700 hover:border-red-300 hover:text-red-700 hover:bg-red-50 transition-all cursor-pointer font-bold shadow-sm text-sm active:scale-95">
-                                    <span className="text-lg">👎</span> Falso
-                                </button>
-                            </div>
-                        </div>
-                    </li>
-                    <li className="flex justify-between items-center group pt-2 pb-3 border-b border-surface">
-                        <div className="flex flex-col">
-                            <span className="font-semibold text-gray-700">Mercado Central</span>
-                            <span className="text-xs px-2 py-0.5 rounded-md w-max mt-1 text-muted bg-surface/50">
-                                Promedio
-                            </span>
-                        </div>
-                        <div className="flex flex-col items-end gap-1.5 mt-2">
-                            <span className="text-xl font-bold text-gray-800">$2.15</span>
-                            <div className="flex items-center gap-2 mt-2">
-                                <button className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-bg border border-surface text-gray-700 hover:border-green-300 hover:text-green-700 hover:bg-green-50 transition-all cursor-pointer font-bold shadow-sm text-sm active:scale-95">
-                                    <span className="text-lg">👍</span> Cierto
-                                </button>
-                                <button className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-bg border border-surface text-gray-700 hover:border-red-300 hover:text-red-700 hover:bg-red-50 transition-all cursor-pointer font-bold shadow-sm text-sm active:scale-95">
-                                    <span className="text-lg">👎</span> Falso
-                                </button>
-                            </div>
-                        </div>
-                    </li>
-                    <li className="flex justify-between items-center group pt-2">
-                        <div className="flex flex-col">
-                            <span className="font-semibold text-gray-700">Mercado Caraguay</span>
-                            <span className="text-xs px-2 py-0.5 rounded-md w-max mt-1 text-redt bg-redb">
-                                Caro
-                            </span>
-                        </div>
-                        <div className="flex flex-col items-end gap-1.5 mt-2">
-                            <span className="text-xl font-bold text-gray-800">$2.30</span>
-                            <div className="flex items-center gap-2 mt-2">
-                                <button className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-bg border border-surface text-gray-700 hover:border-green-300 hover:text-green-700 hover:bg-green-50 transition-all cursor-pointer font-bold shadow-sm text-sm active:scale-95">
-                                    <span className="text-lg">👍</span> Cierto
-                                </button>
-                                <button className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-bg border border-surface text-gray-700 hover:border-red-300 hover:text-red-700 hover:bg-red-50 transition-all cursor-pointer font-bold shadow-sm text-sm active:scale-95">
-                                    <span className="text-lg">👎</span> Falso
-                                </button>
-                            </div>
-                        </div>
-                    </li>
-                </ul>
+                {reports.length > 0 ? (
+                    <ul className="flex flex-col gap-3 bg-white border-2 border-surface p-5 rounded-2xl shadow-sm">
+                        {reports.map((report, idx) => {
+                            const isCheapest = parseFloat(report.price) === minPrice;
+                            return (
+                                <li key={report.id} className={`flex justify-between items-center group pt-2 pb-3 ${idx < reports.length - 1 ? 'border-b border-surface' : ''}`}>
+                                    <div className="flex flex-col">
+                                        <span className="font-semibold text-gray-700">{report.markets.name}</span>
+                                        {isCheapest ? (
+                                            <span className="text-xs px-2 py-0.5 rounded-md w-max mt-1 text-greent bg-greenb font-semibold">
+                                                Más barato
+                                            </span>
+                                        ) : (
+                                            <span className="text-xs px-2 py-0.5 rounded-md w-max mt-1 text-muted bg-surface/50 font-semibold">
+                                                Confirmado
+                                            </span>
+                                        )}
+                                    </div>
+                                    <div className="flex flex-col items-end gap-1.5 mt-2">
+                                        <span className={`text-xl font-bold ${isCheapest ? 'text-primary' : 'text-gray-800'}`}>
+                                            ${parseFloat(report.price).toFixed(2)}
+                                        </span>
+                                        <div className="flex items-center gap-2 mt-2">
+                                            <button onClick={handleVote} className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-bg border border-surface text-gray-700 hover:border-green-300 hover:text-green-700 hover:bg-green-50 transition-all cursor-pointer font-bold shadow-sm text-sm active:scale-95">
+                                                <span className="text-lg">👍</span> Cierto
+                                            </button>
+                                            <button onClick={handleVote} className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-bg border border-surface text-gray-700 hover:border-red-300 hover:text-red-700 hover:bg-red-50 transition-all cursor-pointer font-bold shadow-sm text-sm active:scale-95">
+                                                <span className="text-lg">👎</span> Falso
+                                            </button>
+                                        </div>
+                                    </div>
+                                </li>
+                            );
+                        })}
+                    </ul>
+                ) : (
+                    <div className="bg-white border-2 border-surface p-5 rounded-2xl shadow-sm text-center text-muted">
+                        Nadie ha reportado precios para este producto en esta localidad hoy.
+                    </div>
+                )}
             </main>
             
             <NavBar />

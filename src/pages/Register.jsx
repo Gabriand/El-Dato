@@ -1,16 +1,54 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { useState } from "react";
+import { toast } from "sonner";
+import { supabase } from "../services/supabaseClient";
 
 export default function Register() {
-    const { login } = useAuth();
+    const { register, loginWithGoogle } = useAuth();
     const navigate = useNavigate();
 
-    const handleRegister = (e) => {
+    const [username, setUsername] = useState("");
+    const [email, setEmail] = useState("");
+    const [password, setPassword] = useState("");
+    const [city, setCity] = useState("gye");
+    const [avatarFile, setAvatarFile] = useState(null);
+    const [isLoading, setIsLoading] = useState(false);
+
+    const handleRegister = async (e) => {
         e.preventDefault();
-        // Cuando configuremos Supabase, aquí llamaremos a supabase.auth.signUp()
-        // Por ahora simulamos que el registro fue un éxito e inicia sesión automáticamente.
-        login();
-        navigate("/");
+        setIsLoading(true);
+        try {
+            let avatarUrl = null;
+
+            if (avatarFile) {
+                const fileExt = avatarFile.name.split('.').pop();
+                const fileName = `${username}-${Date.now()}.${fileExt}`;
+                const filePath = `public/${fileName}`;
+
+                const { error: uploadError } = await supabase.storage
+                    .from('avatars')
+                    .upload(filePath, avatarFile);
+
+                if (uploadError) throw uploadError;
+
+                const { data } = supabase.storage.from('avatars').getPublicUrl(filePath);
+                avatarUrl = data.publicUrl;
+            }
+
+            await register(email, password, { 
+                username: username, 
+                city: city, 
+                avatar_url: avatarUrl 
+            });
+
+            toast.success("¡Cuenta creada con éxito! Bienvenido.", { position: "top-center" });
+            navigate("/welcome");
+        } catch (error) {
+            toast.error(error.message, { position: "top-center" });
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     return (
@@ -18,17 +56,46 @@ export default function Register() {
             <div className="w-full max-w-sm flex flex-col items-center">
                 <h1 className="text-primary text-4xl font-bold mb-2">Crear Cuenta</h1>
                 <p className="text-muted text-center mb-10">
-                    Únete a la comunidad y reporta precios justos.
+                    Únete a la comunidad local y reporta precios justos.
                 </p>
 
                 <form className="w-full flex flex-col gap-4" onSubmit={handleRegister}>
                     <div className="flex flex-col gap-1.5">
-                        <label className="font-semibold text-gray-700 ml-1">Nombre Completo</label>
-                        <input 
+                        <label className="font-semibold text-gray-700 ml-1">Usuario</label>
+                        <div className="relative">
+                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted font-bold">@</span>
+                            <input 
+                                required
+                                type="text" 
+                                value={username}
+                                onChange={(e) => setUsername(e.target.value)}
+                                placeholder="tu_usuario"
+                                className="w-full bg-surface/30 border-2 border-surface p-3.5 pl-9 rounded-xl outline-none focus:border-primary transition-colors text-gray-800"
+                            />
+                        </div>
+                    </div>
+
+                    <div className="flex flex-col gap-1.5">
+                        <label className="font-semibold text-gray-700 ml-1">Localidad</label>
+                        <select 
                             required
-                            type="text" 
-                            placeholder="Juan Pérez"
+                            value={city}
+                            onChange={(e) => setCity(e.target.value)}
                             className="w-full bg-surface/30 border-2 border-surface p-3.5 rounded-xl outline-none focus:border-primary transition-colors text-gray-800"
+                        >
+                            <option value="gye">Guayaquil</option>
+                            <option value="uio">Quito</option>
+                            <option value="cue">Cuenca</option>
+                        </select>
+                    </div>
+
+                    <div className="flex flex-col gap-1.5">
+                        <label className="font-semibold text-gray-700 ml-1">Foto de Perfil <span className="text-muted font-normal text-sm">(Opcional)</span></label>
+                        <input 
+                            type="file" 
+                            accept="image/*"
+                            onChange={(e) => setAvatarFile(e.target.files[0])}
+                            className="w-full bg-surface/30 border-2 border-surface p-3 rounded-xl outline-none focus:border-primary transition-colors text-gray-800 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-white hover:file:bg-primary/90"
                         />
                     </div>
                     
@@ -37,6 +104,8 @@ export default function Register() {
                         <input 
                             required
                             type="email" 
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
                             placeholder="tu@correo.com"
                             className="w-full bg-surface/30 border-2 border-surface p-3.5 rounded-xl outline-none focus:border-primary transition-colors text-gray-800"
                         />
@@ -47,13 +116,15 @@ export default function Register() {
                         <input 
                             required
                             type="password" 
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
                             placeholder="••••••••"
                             className="w-full bg-surface/30 border-2 border-surface p-3.5 rounded-xl outline-none focus:border-primary transition-colors text-gray-800"
                         />
                     </div>
 
-                    <button type="submit" className="w-full bg-primary text-white font-bold text-lg py-3.5 rounded-xl shadow-lg shadow-primary/30 hover:bg-primary/90 transition-all active:scale-95">
-                        Registrarse
+                    <button disabled={isLoading} type="submit" className="w-full bg-primary text-white font-bold text-lg py-3.5 rounded-xl shadow-lg shadow-primary/30 hover:bg-primary/90 transition-all active:scale-95 disabled:opacity-70 disabled:active:scale-100">
+                        {isLoading ? "Creando cuenta..." : "Registrarse"}
                     </button>
 
                     <div className="relative flex items-center justify-center mt-4 mb-2">
@@ -63,7 +134,7 @@ export default function Register() {
                         <div className="relative px-4 bg-bg text-sm text-muted">o regístrate con</div>
                     </div>
 
-                    <button type="button" className="w-full flex items-center justify-center gap-3 bg-white border-2 border-surface text-gray-700 font-bold text-lg py-3.5 rounded-xl hover:border-gray-300 transition-all active:scale-95">
+                    <button type="button" onClick={loginWithGoogle} className="w-full flex items-center justify-center gap-3 bg-white border-2 border-surface text-gray-700 font-bold text-lg py-3.5 rounded-xl hover:border-gray-300 transition-all active:scale-95">
                         <svg className="w-6 h-6" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                             <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
                             <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
