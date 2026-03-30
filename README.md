@@ -15,7 +15,7 @@ Proyecto desarrollado para la **Hackatón CubePath 2026**.
 
 | Home | Comparar | Reportar | Perfil | Canasta |
 | --- | --- | --- | --- | --- |
-| <img src="docs/capturas/01-home.png" alt="Home" width="180" /> | <img src="docs/capturas/02-comparar.png" alt="Comparar" width="180" /> | <img src="docs/capturas/03-reportar.png" alt="Reportar" width="180" /> | <img src="docs/capturas/04-perfil.png" alt="Perfil" width="180" /> | <img src="docs/capturas/05-canasta.png" alt="Canasta" width="180" /> |  |
+| <img src="docs/capturas/01-home.png" alt="Home" width="180" /> | <img src="docs/capturas/02-comparar.png" alt="Comparar" width="180" /> | <img src="docs/capturas/03-reportar.png" alt="Reportar" width="180" /> | <img src="docs/capturas/04-perfil.png" alt="Perfil" width="180" /> | <img src="docs/capturas/05-canasta.png" alt="Canasta" width="180" /> |
 
 ### 🎬 Demo GIF
 
