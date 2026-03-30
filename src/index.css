@@ -6,14 +6,10 @@
     --color-secondary: #ff8a71;
     --color-tertiary: #be6000;
     --color-text: #111827;
-    /*Superficie - cards*/
     --color-surface: #e5e7eb;
-    /*Etiquetas secundarias, info menos relevante*/
     --color-muted: #64748b;
-    /*barra - fondos*/
     --color-tone: #f1f3ff;
 
-    /*background y texto de estado*/
     --color-greenb: #e8f5e9;
     --color-yellowb: #fffde7;
     --color-redb: #ffebee;

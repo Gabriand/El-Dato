@@ -221,7 +221,6 @@ export default function ProductDetail() {
         }
     };
 
-    // Cálculos
     const averagePrice =
         reports.length > 0
             ? reports.reduce((acc, curr) => acc + parseFloat(curr.price), 0) /

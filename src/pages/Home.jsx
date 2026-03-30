@@ -1,13 +1,19 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import FilterBar from "../components/FilterBar";
 import NavBar from "../components/NavBar";
 import ProductCard from "../components/ProductCard";
 import TopBar from "../components/TopBar";
 import EmptyState from "../components/EmptyState";
-import { getRecentReports } from "../services/api";
+import {
+    addFavorite,
+    getFavoriteProductIds,
+    getRecentReports,
+    removeFavorite,
+} from "../services/api";
 import { useAuth } from "../context/AuthContext";
 import { normalizeCityCode } from "../utils/city";
 import { toast } from "sonner";
+import useInfiniteCardLoader from "../hooks/useInfiniteCardLoader";
 
 const normalizeText = (value) =>
     String(value || "")
@@ -49,37 +55,163 @@ const inferCategory = (productName) => {
     return "abarrotes";
 };
 
+const getHomePageSize = () => {
+    if (typeof window === "undefined") return 60;
+
+    const width = window.innerWidth;
+    if (width < 640) return 24;
+    if (width < 1024) return 40;
+    return 60;
+};
+
+const mergeReportsById = (previousReports, incomingReports) => {
+    if (!Array.isArray(incomingReports) || incomingReports.length === 0) {
+        return previousReports;
+    }
+
+    const seenIds = new Set(previousReports.map((report) => report.id));
+    const uniqueIncoming = incomingReports.filter((report) => {
+        if (seenIds.has(report.id)) return false;
+        seenIds.add(report.id);
+        return true;
+    });
+
+    return [...previousReports, ...uniqueIncoming];
+};
+
 export default function Home() {
-    const { profile } = useAuth();
+    const { profile, user } = useAuth();
     const [searchTerm, setSearchTerm] = useState("");
     const [reports, setReports] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
-
-    // Simplificaremos las categorías iniciales al MVP
-    // Más adelante se pueden cargar desde supabase.from('categories')
     const [activeCategory, setActiveCategory] = useState("Todos");
+    const [favoriteIds, setFavoriteIds] = useState([]);
+    const [nextOffset, setNextOffset] = useState(0);
+    const [hasMoreReports, setHasMoreReports] = useState(false);
+    const [isLoadingMoreReports, setIsLoadingMoreReports] = useState(false);
+    const [reportsPageSize, setReportsPageSize] = useState(getHomePageSize);
+    const backendSentinelRef = useRef(null);
+
+    const userCity = normalizeCityCode(profile?.city);
 
     useEffect(() => {
-        const fetchReports = async () => {
-            setIsLoading(true);
+        const handleResize = () => {
+            const nextPageSize = getHomePageSize();
+            setReportsPageSize((currentSize) =>
+                currentSize === nextPageSize ? currentSize : nextPageSize,
+            );
+        };
+
+        window.addEventListener("resize", handleResize);
+        return () => {
+            window.removeEventListener("resize", handleResize);
+        };
+    }, []);
+
+    const loadInitialReports = useCallback(async () => {
+        setIsLoading(true);
+        try {
+            const result = await getRecentReports(userCity, {
+                offset: 0,
+                limit: reportsPageSize,
+                withMeta: true,
+            });
+
+            setReports(result.data || []);
+            setNextOffset(result.nextOffset || 0);
+            setHasMoreReports(Boolean(result.hasMore));
+        } catch (error) {
+            console.error("Error cargando reportes:", error);
+            toast.error("No se pudieron cargar los reportes en Inicio.");
+            setReports([]);
+            setNextOffset(0);
+            setHasMoreReports(false);
+        } finally {
+            setIsLoading(false);
+        }
+    }, [reportsPageSize, userCity]);
+
+    const loadMoreReports = useCallback(async () => {
+        if (isLoading || isLoadingMoreReports || !hasMoreReports) return;
+
+        setIsLoadingMoreReports(true);
+        try {
+            const result = await getRecentReports(userCity, {
+                offset: nextOffset,
+                limit: reportsPageSize,
+                withMeta: true,
+            });
+
+            setReports((previous) =>
+                mergeReportsById(previous, result.data || []),
+            );
+            setNextOffset(result.nextOffset || nextOffset);
+            setHasMoreReports(Boolean(result.hasMore));
+        } catch (error) {
+            console.error("Error cargando más reportes:", error);
+            toast.error("No se pudieron cargar más reportes.");
+        } finally {
+            setIsLoadingMoreReports(false);
+        }
+    }, [
+        hasMoreReports,
+        isLoading,
+        isLoadingMoreReports,
+        nextOffset,
+        reportsPageSize,
+        userCity,
+    ]);
+
+    useEffect(() => {
+        if (profile === undefined) return;
+
+        loadInitialReports();
+    }, [loadInitialReports, profile]);
+
+    useEffect(() => {
+        const loadFavorites = async () => {
+            if (!user) {
+                setFavoriteIds([]);
+                return;
+            }
+
             try {
-                // Default 'gye', pero usa la del perfil si existe
-                const userCity = normalizeCityCode(profile?.city);
-                const data = await getRecentReports(userCity);
-                setReports(data || []);
+                const ids = await getFavoriteProductIds(user.id);
+                setFavoriteIds(ids);
             } catch (error) {
-                console.error("Error cargando reportes:", error);
-                toast.error("No se pudieron cargar los reportes en Inicio.");
-            } finally {
-                setIsLoading(false);
+                console.error("Error cargando favoritos:", error);
             }
         };
 
-        // Solo carga si profile ya se ha inicializado o si estamos como invitados (null)
-        if (profile !== undefined) {
-            fetchReports();
+        loadFavorites();
+    }, [user]);
+
+    const handleSaveFavorite = async (productId) => {
+        if (!user) {
+            toast.info(
+                "Inicia sesión para poder guardar productos en tu canasta",
+            );
+            return;
         }
-    }, [profile]);
+
+        const alreadyFavorite = favoriteIds.includes(productId);
+
+        try {
+            if (alreadyFavorite) {
+                await removeFavorite(user.id, productId);
+                setFavoriteIds((prev) => prev.filter((id) => id !== productId));
+                toast.info("Producto eliminado de tu Canasta Base");
+                return;
+            }
+
+            await addFavorite(user.id, productId);
+            setFavoriteIds((prev) => [...prev, productId]);
+            toast.success("Producto agregado a tu Canasta Base");
+        } catch (error) {
+            console.error(error);
+            toast.error("No se pudo actualizar tu canasta.");
+        }
+    };
 
     const productCards = useMemo(() => {
         const grouped = {};
@@ -132,31 +264,80 @@ export default function Home() {
             .sort((a, b) => new Date(b.latestAt) - new Date(a.latestAt));
     }, [reports]);
 
-    const filteredCards = productCards.filter((card) => {
-        const normalizedProduct = normalizeText(card.nombreProd);
-        const normalizedCategory = normalizeText(card.categoryName);
-        const normalizedMarket = normalizeText(card.marketNames.join(" "));
-        const normalizedActiveCategory = normalizeText(activeCategory);
-        const searchTokens = normalizeText(searchTerm)
-            .split(/\s+/)
-            .filter(Boolean);
+    const filteredCards = useMemo(() => {
+        return productCards.filter((card) => {
+            const normalizedProduct = normalizeText(card.nombreProd);
+            const normalizedCategory = normalizeText(card.categoryName);
+            const normalizedMarket = normalizeText(card.marketNames.join(" "));
+            const normalizedActiveCategory = normalizeText(activeCategory);
+            const searchTokens = normalizeText(searchTerm)
+                .split(/\s+/)
+                .filter(Boolean);
 
-        const matchesCategory =
-            activeCategory === "Todos" ||
-            normalizedProduct.includes(normalizedActiveCategory) ||
-            normalizedCategory.includes(normalizedActiveCategory);
+            const matchesCategory =
+                activeCategory === "Todos" ||
+                normalizedProduct.includes(normalizedActiveCategory) ||
+                normalizedCategory.includes(normalizedActiveCategory);
 
-        const matchesSearch =
-            searchTokens.length === 0 ||
-            searchTokens.every(
-                (token) =>
-                    normalizedProduct.includes(token) ||
-                    normalizedMarket.includes(token) ||
-                    normalizedCategory.includes(token),
-            );
+            const matchesSearch =
+                searchTokens.length === 0 ||
+                searchTokens.every(
+                    (token) =>
+                        normalizedProduct.includes(token) ||
+                        normalizedMarket.includes(token) ||
+                        normalizedCategory.includes(token),
+                );
 
-        return matchesCategory && matchesSearch;
+            return matchesCategory && matchesSearch;
+        });
+    }, [activeCategory, productCards, searchTerm]);
+
+    const {
+        visibleItems: visibleCards,
+        hasMore,
+        sentinelRef,
+    } = useInfiniteCardLoader({
+        items: filteredCards,
+        initialCount: 8,
+        incrementCount: 8,
+        resetKey: `${normalizeText(activeCategory)}:${normalizeText(searchTerm)}`,
     });
+
+    useEffect(() => {
+        if (isLoading || isLoadingMoreReports || !hasMoreReports || hasMore) {
+            return undefined;
+        }
+
+        const sentinel = backendSentinelRef.current;
+        if (!sentinel) return undefined;
+
+        const observer = new IntersectionObserver(
+            (entries) => {
+                const [entry] = entries;
+                if (!entry?.isIntersecting) return;
+
+                observer.unobserve(entry.target);
+                loadMoreReports();
+            },
+            {
+                root: null,
+                rootMargin: "420px",
+                threshold: 0.01,
+            },
+        );
+
+        observer.observe(sentinel);
+
+        return () => {
+            observer.disconnect();
+        };
+    }, [
+        hasMore,
+        hasMoreReports,
+        isLoading,
+        isLoadingMoreReports,
+        loadMoreReports,
+    ]);
 
     return (
         <div className="bg-bg min-h-screen">
@@ -232,34 +413,59 @@ export default function Home() {
                             Cargando reportes de tu localidad...
                         </div>
                     ) : filteredCards.length > 0 ? (
-                        filteredCards.map((card) => {
-                            const hasComparison =
-                                card.expensivePrice > card.cheapestPrice;
-                            const savings =
-                                card.expensivePrice - card.cheapestPrice;
+                        <>
+                            {visibleCards.map((card) => {
+                                const hasComparison =
+                                    card.expensivePrice > card.cheapestPrice;
+                                const savings =
+                                    card.expensivePrice - card.cheapestPrice;
+                                const isFavorite = favoriteIds.includes(
+                                    card.idProd,
+                                );
 
-                            return (
-                                <ProductCard
-                                    key={card.idProd}
-                                    idProd={card.idProd}
-                                    urlImg={card.urlImg}
-                                    nombreImg={card.nombreImg}
-                                    disponible={
-                                        hasComparison && savings >= 0.4
-                                            ? "Regalado"
-                                            : "En algo"
-                                    }
-                                    nombreProd={card.nombreProd}
-                                    lugar={card.cheapestMarket}
-                                    precioActual={card.cheapestPrice}
-                                    precioAnterior={
-                                        hasComparison
-                                            ? card.expensivePrice
-                                            : null
-                                    }
-                                />
-                            );
-                        })
+                                return (
+                                    <ProductCard
+                                        key={card.idProd}
+                                        idProd={card.idProd}
+                                        urlImg={card.urlImg}
+                                        nombreImg={card.nombreImg}
+                                        disponible={
+                                            hasComparison && savings >= 0.4
+                                                ? "Regalado"
+                                                : "En algo"
+                                        }
+                                        nombreProd={card.nombreProd}
+                                        lugar={card.cheapestMarket}
+                                        precioActual={card.cheapestPrice}
+                                        precioAnterior={
+                                            hasComparison
+                                                ? card.expensivePrice
+                                                : null
+                                        }
+                                        isFavorite={isFavorite}
+                                        onFavoriteToggle={handleSaveFavorite}
+                                    />
+                                );
+                            })}
+                            {hasMore && (
+                                <div
+                                    ref={sentinelRef}
+                                    className="w-full py-4 flex justify-center text-sm text-muted"
+                                >
+                                    Cargando más productos...
+                                </div>
+                            )}
+                            {!hasMore && hasMoreReports && (
+                                <div
+                                    ref={backendSentinelRef}
+                                    className="w-full py-4 flex justify-center text-sm text-muted"
+                                >
+                                    {isLoadingMoreReports
+                                        ? "Cargando más productos desde el servidor..."
+                                        : "Desplázate para cargar más resultados..."}
+                                </div>
+                            )}
+                        </>
                     ) : (
                         <div className="w-full pt-10">
                             <EmptyState

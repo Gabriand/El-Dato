@@ -9,6 +9,8 @@ export default function ProductCard({
     lugar,
     precioActual,
     precioAnterior,
+    isFavorite = false,
+    onFavoriteToggle,
 }) {
     const disponibleClasses = {
         Regalado: "bg-greenb text-greent",
@@ -21,7 +23,6 @@ export default function ProductCard({
     const hasCurrent = Number.isFinite(parsedCurrent);
     const hasPrevious = Number.isFinite(parsedPrevious);
 
-    // En el card siempre priorizamos: grande = más barato, tachado = más caro
     const minPrice = hasCurrent
         ? hasPrevious
             ? Math.min(parsedCurrent, parsedPrevious)
@@ -49,6 +50,8 @@ export default function ProductCard({
                 className="w-36 h-36 shrink-0 object-cover rounded-2xl"
                 src={imageSrc}
                 alt={nombreImg}
+                loading="lazy"
+                decoding="async"
             />
             <div className="w-full">
                 <div className="flex items-center justify-between mb-1">
@@ -60,23 +63,43 @@ export default function ProductCard({
                     >
                         {disponible}
                     </span>
-                    <svg
-                        className="text-muted hover:text-red-600 hover:scale-125 cursor-pointer transition-all"
-                        width="26px"
-                        height="26px"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        xmlns="http://www.w3.org/2000/svg"
+                    <button
+                        type="button"
+                        onClick={(event) => {
+                            event.preventDefault();
+                            event.stopPropagation();
+                            if (typeof onFavoriteToggle === "function") {
+                                onFavoriteToggle(idProd);
+                            }
+                        }}
+                        className={`transition-all cursor-pointer ${isFavorite ? "text-red-600 scale-110" : "text-muted hover:text-red-600 hover:scale-125"}`}
+                        title={
+                            isFavorite
+                                ? "Quitar de canasta"
+                                : "Guardar en canasta"
+                        }
+                        aria-label={
+                            isFavorite
+                                ? "Quitar de canasta"
+                                : "Guardar en canasta"
+                        }
                     >
-                        <path
-                            d="M15.7 4C18.87 4 21 6.98 21 9.76C21 15.39 12.16 20 12 20C11.84 20 3 15.39 3 9.76C3 6.98 5.13 4 8.3 4C10.12 4 11.31 4.91 12 5.71C12.69 4.91 13.88 4 15.7 4Z"
-                            stroke="currentColor"
-                            fill="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                        />
-                    </svg>
+                        <svg
+                            width="26px"
+                            height="26px"
+                            viewBox="0 0 24 24"
+                            fill={isFavorite ? "currentColor" : "none"}
+                            xmlns="http://www.w3.org/2000/svg"
+                        >
+                            <path
+                                d="M15.7 4C18.87 4 21 6.98 21 9.76C21 15.39 12.16 20 12 20C11.84 20 3 15.39 3 9.76C3 6.98 5.13 4 8.3 4C10.12 4 11.31 4.91 12 5.71C12.69 4.91 13.88 4 15.7 4Z"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                            />
+                        </svg>
+                    </button>
                 </div>
                 <p className="font-semibold text-xl mb-2">{nombreProd}</p>
                 <div className="flex gap-1 mb-1">

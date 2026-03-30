@@ -3,10 +3,39 @@ import TopBar from "../components/TopBar";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { getCityLabel } from "../utils/city";
+import { useEffect, useState } from "react";
+import { getReportCountByUser } from "../services/api";
+import { toast } from "sonner";
 
 export default function Profile() {
-    const { logout, profile } = useAuth();
+    const { logout, profile, user } = useAuth();
     const navigate = useNavigate();
+    const [reportCount, setReportCount] = useState(0);
+    const [isLoadingCount, setIsLoadingCount] = useState(true);
+
+    useEffect(() => {
+        const loadReportCount = async () => {
+            if (!user) {
+                setReportCount(0);
+                setIsLoadingCount(false);
+                return;
+            }
+
+            setIsLoadingCount(true);
+            try {
+                const count = await getReportCountByUser(user.id);
+                setReportCount(count);
+            } catch (error) {
+                console.error("Error cargando total de reportes:", error);
+                toast.error("No se pudo cargar tu total de reportes.");
+                setReportCount(0);
+            } finally {
+                setIsLoadingCount(false);
+            }
+        };
+
+        loadReportCount();
+    }, [user]);
 
     const handleLogout = () => {
         logout();
@@ -51,7 +80,7 @@ export default function Profile() {
                             Precios Reportados
                         </span>
                         <span className="text-3xl font-bold text-gray-800 mt-1">
-                            --
+                            {isLoadingCount ? "..." : reportCount}
                         </span>
                     </div>
                     <div className="text-5xl group-hover:scale-110 transition-transform">

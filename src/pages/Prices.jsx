@@ -2,7 +2,7 @@ import NavBar from "../components/NavBar";
 import TopBar from "../components/TopBar";
 import FilterBar from "../components/FilterBar";
 import EmptyState from "../components/EmptyState";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import {
     addFavorite,
     getFavoriteProductIds,
@@ -12,6 +12,7 @@ import {
 import { useAuth } from "../context/AuthContext";
 import { toast } from "sonner";
 import { normalizeCityCode } from "../utils/city";
+import useInfiniteCardLoader from "../hooks/useInfiniteCardLoader";
 
 const LATAM_CATEGORIES = [
     "Todos",
@@ -73,95 +74,86 @@ const inferCategory = (productName) => {
     return "Abarrotes";
 };
 
+const getPricesPageSize = () => {
+    if (typeof window === "undefined") return 80;
+
+    const width = window.innerWidth;
+    if (width < 640) return 28;
+    if (width < 1024) return 50;
+    return 80;
+};
+
+const mergeReportsById = (previousReports, incomingReports) => {
+    if (!Array.isArray(incomingReports) || incomingReports.length === 0) {
+        return previousReports;
+    }
+
+    const seenIds = new Set(previousReports.map((report) => report.id));
+    const uniqueIncoming = incomingReports.filter((report) => {
+        if (seenIds.has(report.id)) return false;
+        seenIds.add(report.id);
+        return true;
+    });
+
+    return [...previousReports, ...uniqueIncoming];
+};
+
 export default function Prices() {
     const { profile, user } = useAuth();
-    const [comparisons, setComparisons] = useState([]);
+    const [reports, setReports] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [activeCategory, setActiveCategory] = useState("Todos");
     const [favoriteIds, setFavoriteIds] = useState([]);
+    const [nextOffset, setNextOffset] = useState(0);
+    const [hasMoreReports, setHasMoreReports] = useState(false);
+    const [isLoadingMoreReports, setIsLoadingMoreReports] = useState(false);
+    const [reportsPageSize, setReportsPageSize] = useState(getPricesPageSize);
+    const backendSentinelRef = useRef(null);
+
+    const userCity = normalizeCityCode(profile?.city || "gye");
 
     useEffect(() => {
-        const fetchReports = async () => {
-            setIsLoading(true);
-            try {
-                const userCity = profile?.city || "gye";
-                const data = await getRecentReports(
-                    normalizeCityCode(userCity),
-                );
-
-                if (!data) return;
-
-                const grouped = {};
-                data.forEach((report) => {
-                    if (!report.products || !report.markets) return;
-
-                    const pId = report.products.id;
-                    const categoryName =
-                        report.products.categories?.name ||
-                        inferCategory(report.products.name);
-                    if (!grouped[pId]) {
-                        grouped[pId] = {
-                            id: pId,
-                            product: `${report.products.name || "Producto"} (1 ${report.products.unit || ""})`,
-                            category: categoryName,
-                            markets: [],
-                        };
-                    }
-
-                    const existingMarket = grouped[pId].markets.find(
-                        (m) => m.id === report.markets.id,
-                    );
-                    if (!existingMarket) {
-                        grouped[pId].markets.push({
-                            id: report.markets.id,
-                            name: report.markets.name,
-                            price: report.price,
-                            tag: "",
-                            color: "",
-                        });
-                    }
-                });
-
-                const comparisonsArray = Object.values(grouped).map((group) => {
-                    const sortedMarkets = group.markets.sort(
-                        (a, b) => a.price - b.price,
-                    );
-
-                    sortedMarkets.forEach((m, idx) => {
-                        if (idx === 0) {
-                            m.tag = "Más barato";
-                            m.color = "text-greent bg-greenb";
-                        } else if (
-                            idx === sortedMarkets.length - 1 &&
-                            sortedMarkets.length > 2
-                        ) {
-                            m.tag = "Caro";
-                            m.color = "text-redt bg-redb";
-                        } else {
-                            m.tag = "Promedio";
-                            m.color = "text-muted bg-surface/50";
-                        }
-                    });
-
-                    return { ...group, markets: sortedMarkets };
-                });
-
-                comparisonsArray.sort((a, b) =>
-                    a.product.localeCompare(b.product),
-                );
-                setComparisons(comparisonsArray);
-            } catch (error) {
-                console.error("Error cargando comparaciones:", error);
-                toast.error("No se pudieron cargar los precios.");
-            } finally {
-                setIsLoading(false);
-            }
+        const handleResize = () => {
+            const nextPageSize = getPricesPageSize();
+            setReportsPageSize((currentSize) =>
+                currentSize === nextPageSize ? currentSize : nextPageSize,
+            );
         };
 
-        if (profile !== undefined) {
-            fetchReports();
+        window.addEventListener("resize", handleResize);
+        return () => {
+            window.removeEventListener("resize", handleResize);
+        };
+    }, []);
+
+    const loadInitialReports = useCallback(async () => {
+        setIsLoading(true);
+        try {
+            const result = await getRecentReports(userCity, {
+                offset: 0,
+                limit: reportsPageSize,
+                withMeta: true,
+            });
+
+            setReports(result.data || []);
+            setNextOffset(result.nextOffset || 0);
+            setHasMoreReports(Boolean(result.hasMore));
+        } catch (error) {
+            console.error("Error cargando comparaciones:", error);
+            toast.error("No se pudieron cargar los precios.");
+            setReports([]);
+            setNextOffset(0);
+            setHasMoreReports(false);
+        } finally {
+            setIsLoading(false);
         }
-    }, [profile]);
+    }, [reportsPageSize, userCity]);
+
+    useEffect(() => {
+        if (profile === undefined) return;
+
+        loadInitialReports();
+    }, [loadInitialReports, profile]);
 
     useEffect(() => {
         const loadFavorites = async () => {
@@ -208,6 +200,166 @@ export default function Prices() {
         }
     };
 
+    const loadMoreReports = useCallback(async () => {
+        if (isLoading || isLoadingMoreReports || !hasMoreReports) return;
+
+        setIsLoadingMoreReports(true);
+        try {
+            const result = await getRecentReports(userCity, {
+                offset: nextOffset,
+                limit: reportsPageSize,
+                withMeta: true,
+            });
+
+            setReports((previous) =>
+                mergeReportsById(previous, result.data || []),
+            );
+            setNextOffset(result.nextOffset || nextOffset);
+            setHasMoreReports(Boolean(result.hasMore));
+        } catch (error) {
+            console.error("Error cargando más comparaciones:", error);
+            toast.error("No se pudieron cargar más precios.");
+        } finally {
+            setIsLoadingMoreReports(false);
+        }
+    }, [
+        hasMoreReports,
+        isLoading,
+        isLoadingMoreReports,
+        nextOffset,
+        reportsPageSize,
+        userCity,
+    ]);
+
+    const comparisons = useMemo(() => {
+        const grouped = {};
+
+        reports.forEach((report) => {
+            if (!report.products || !report.markets) return;
+
+            const parsedPrice = Number(report.price);
+            if (!Number.isFinite(parsedPrice)) return;
+
+            const pId = report.products.id;
+            const categoryName =
+                report.products.categories?.name ||
+                inferCategory(report.products.name);
+
+            if (!grouped[pId]) {
+                grouped[pId] = {
+                    id: pId,
+                    product: `${report.products.name || "Producto"} (1 ${report.products.unit || ""})`,
+                    category: categoryName,
+                    markets: [],
+                };
+            }
+
+            const existingMarket = grouped[pId].markets.find(
+                (market) => market.id === report.markets.id,
+            );
+            if (!existingMarket) {
+                grouped[pId].markets.push({
+                    id: report.markets.id,
+                    name: report.markets.name,
+                    price: parsedPrice,
+                    tag: "",
+                    color: "",
+                });
+            }
+        });
+
+        const comparisonsArray = Object.values(grouped).map((group) => {
+            const sortedMarkets = group.markets.sort(
+                (a, b) => a.price - b.price,
+            );
+
+            sortedMarkets.forEach((market, idx) => {
+                if (idx === 0) {
+                    market.tag = "Más barato";
+                    market.color = "text-greent bg-greenb";
+                } else if (
+                    idx === sortedMarkets.length - 1 &&
+                    sortedMarkets.length > 2
+                ) {
+                    market.tag = "Caro";
+                    market.color = "text-redt bg-redb";
+                } else {
+                    market.tag = "Promedio";
+                    market.color = "text-muted bg-surface/50";
+                }
+            });
+
+            return { ...group, markets: sortedMarkets };
+        });
+
+        comparisonsArray.sort((a, b) => a.product.localeCompare(b.product));
+        return comparisonsArray;
+    }, [reports]);
+
+    const filteredComparisons = useMemo(() => {
+        if (activeCategory === "Todos") return comparisons;
+
+        const selected = normalizeText(activeCategory);
+
+        return comparisons.filter((item) => {
+            const category = normalizeText(item.category);
+            const product = normalizeText(item.product);
+
+            return (
+                category.includes(selected) ||
+                selected.includes(category) ||
+                product.includes(selected)
+            );
+        });
+    }, [activeCategory, comparisons]);
+
+    const {
+        visibleItems: visibleComparisons,
+        hasMore,
+        sentinelRef,
+    } = useInfiniteCardLoader({
+        items: filteredComparisons,
+        initialCount: 10,
+        incrementCount: 10,
+        resetKey: normalizeText(activeCategory),
+    });
+
+    useEffect(() => {
+        if (isLoading || isLoadingMoreReports || !hasMoreReports || hasMore) {
+            return undefined;
+        }
+
+        const sentinel = backendSentinelRef.current;
+        if (!sentinel) return undefined;
+
+        const observer = new IntersectionObserver(
+            (entries) => {
+                const [entry] = entries;
+                if (!entry?.isIntersecting) return;
+
+                observer.unobserve(entry.target);
+                loadMoreReports();
+            },
+            {
+                root: null,
+                rootMargin: "420px",
+                threshold: 0.01,
+            },
+        );
+
+        observer.observe(sentinel);
+
+        return () => {
+            observer.disconnect();
+        };
+    }, [
+        hasMore,
+        hasMoreReports,
+        isLoading,
+        isLoadingMoreReports,
+        loadMoreReports,
+    ]);
+
     return (
         <div className="bg-bg min-h-screen">
             <header>
@@ -238,34 +390,9 @@ export default function Prices() {
                         <div className="w-full text-center py-10 text-primary font-bold lg:col-span-2">
                             Analizando precios en tu localidad...
                         </div>
-                    ) : comparisons.filter((item) => {
-                          if (activeCategory === "Todos") return true;
-
-                          const selected = normalizeText(activeCategory);
-                          const category = normalizeText(item.category);
-                          const product = normalizeText(item.product);
-
-                          return (
-                              category.includes(selected) ||
-                              selected.includes(category) ||
-                              product.includes(selected)
-                          );
-                      }).length > 0 ? (
-                        comparisons
-                            .filter((item) => {
-                                if (activeCategory === "Todos") return true;
-
-                                const selected = normalizeText(activeCategory);
-                                const category = normalizeText(item.category);
-                                const product = normalizeText(item.product);
-
-                                return (
-                                    category.includes(selected) ||
-                                    selected.includes(category) ||
-                                    product.includes(selected)
-                                );
-                            })
-                            .map((item) => {
+                    ) : filteredComparisons.length > 0 ? (
+                        <>
+                            {visibleComparisons.map((item) => {
                                 const isFavorite = favoriteIds.includes(
                                     item.id,
                                 );
@@ -343,7 +470,26 @@ export default function Prices() {
                                         </ul>
                                     </div>
                                 );
-                            })
+                            })}
+                            {hasMore && (
+                                <div
+                                    ref={sentinelRef}
+                                    className="col-span-1 lg:col-span-2 py-2 text-center text-sm text-muted"
+                                >
+                                    Cargando más comparaciones...
+                                </div>
+                            )}
+                            {!hasMore && hasMoreReports && (
+                                <div
+                                    ref={backendSentinelRef}
+                                    className="col-span-1 lg:col-span-2 py-2 text-center text-sm text-muted"
+                                >
+                                    {isLoadingMoreReports
+                                        ? "Cargando más comparaciones desde el servidor..."
+                                        : "Desplázate para cargar más comparaciones..."}
+                                </div>
+                            )}
+                        </>
                     ) : (
                         <div className="col-span-1 lg:col-span-2">
                             <EmptyState

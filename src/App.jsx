@@ -1,40 +1,85 @@
+import { lazy, Suspense } from "react";
 import { Routes, Route } from "react-router-dom";
 import { Toaster } from "sonner";
-import Home from "./pages/Home";
-import Prices from "./pages/Prices";
-import Report from "./pages/Report";
-import Profile from "./pages/Profile";
-import Login from "./pages/Login";
-import ProductDetail from "./pages/ProductDetail";
-import MarketDetail from "./pages/MarketDetail";
-import EditProfile from "./pages/EditProfile";
-import MyReports from "./pages/MyReports";
-import Favorites from "./pages/Favorites";
-import Welcome from "./pages/Welcome";
-import Register from "./pages/Register";
 import { AuthProvider } from "./context/AuthContext";
 import ProtectedRoute from "./components/ProtectedRoute";
+
+const Home = lazy(() => import("./pages/Home"));
+const Prices = lazy(() => import("./pages/Prices"));
+const Report = lazy(() => import("./pages/Report"));
+const Profile = lazy(() => import("./pages/Profile"));
+const Login = lazy(() => import("./pages/Login"));
+const ProductDetail = lazy(() => import("./pages/ProductDetail"));
+const MarketDetail = lazy(() => import("./pages/MarketDetail"));
+const EditProfile = lazy(() => import("./pages/EditProfile"));
+const MyReports = lazy(() => import("./pages/MyReports"));
+const Favorites = lazy(() => import("./pages/Favorites"));
+const Welcome = lazy(() => import("./pages/Welcome"));
+const Register = lazy(() => import("./pages/Register"));
+
+function RouteFallback() {
+    return (
+        <div className="min-h-screen flex items-center justify-center text-muted font-semibold">
+            Cargando pantalla...
+        </div>
+    );
+}
 
 function App() {
     return (
         <AuthProvider>
             <Toaster richColors position="top-center" />
-            <Routes>
-                <Route path="/welcome" element={<Welcome />} />
-                <Route path="/login" element={<Login />} />
-                <Route path="/register" element={<Register />} />
-                <Route path="/" element={<Home />} />
-                <Route path="/prices" element={<Prices />} />
-                <Route path="/product/:id" element={<ProductDetail />} />
-                <Route path="/market/:id" element={<MarketDetail />} />
-                
-                {/* Rutas Privadas (Protegidas) */}
-                <Route path="/report" element={<ProtectedRoute><Report /></ProtectedRoute>} />
-                <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-                <Route path="/edit-profile" element={<ProtectedRoute><EditProfile /></ProtectedRoute>} />
-                <Route path="/my-reports" element={<ProtectedRoute><MyReports /></ProtectedRoute>} />
-                <Route path="/favorites" element={<ProtectedRoute><Favorites /></ProtectedRoute>} />
-            </Routes>
+            <Suspense fallback={<RouteFallback />}>
+                <Routes>
+                    <Route path="/welcome" element={<Welcome />} />
+                    <Route path="/login" element={<Login />} />
+                    <Route path="/register" element={<Register />} />
+                    <Route path="/" element={<Home />} />
+                    <Route path="/prices" element={<Prices />} />
+                    <Route path="/product/:id" element={<ProductDetail />} />
+                    <Route path="/market/:id" element={<MarketDetail />} />
+                    <Route
+                        path="/report"
+                        element={
+                            <ProtectedRoute>
+                                <Report />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="/profile"
+                        element={
+                            <ProtectedRoute>
+                                <Profile />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="/edit-profile"
+                        element={
+                            <ProtectedRoute>
+                                <EditProfile />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="/my-reports"
+                        element={
+                            <ProtectedRoute>
+                                <MyReports />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="/favorites"
+                        element={
+                            <ProtectedRoute>
+                                <Favorites />
+                            </ProtectedRoute>
+                        }
+                    />
+                </Routes>
+            </Suspense>
         </AuthProvider>
     );
 }

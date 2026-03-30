@@ -33,6 +33,5 @@ export default function ProtectedRoute({ children }) {
         return <Navigate to="/" replace />;
     }
 
-    // Si tiene sesión activa, lo dejamos pasar a su destino original
     return children;
 }

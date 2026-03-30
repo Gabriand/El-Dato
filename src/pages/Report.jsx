@@ -21,7 +21,6 @@ export default function Report() {
     const [isLoadingData, setIsLoadingData] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-    // Form states
     const [selectedProduct, setSelectedProduct] = useState("");
     const [selectedMarket, setSelectedMarket] = useState("");
     const [price, setPrice] = useState("");
@@ -86,13 +85,12 @@ export default function Report() {
             await submitReport({
                 product_id: parseInt(selectedProduct),
                 market_id: parseInt(selectedMarket),
-                user_id: user.id, // AuthContext proporciona al usuario logueado
+                user_id: user.id,
                 price: parseFloat(price),
             });
 
             toast.success("¡Mil gracias! Has ayudado a tu comunidad 🏆");
 
-            // Reset form (dejamos el mercado asumiendo que el usuario podría reportar más cosas en el mismo mercado)
             setSelectedProduct("");
             setPrice("");
         } catch (error) {

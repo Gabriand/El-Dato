@@ -1,11 +1,22 @@
 import { supabase } from "./supabaseClient";
 import { getCityAliases, normalizeCityCode } from "../utils/city";
 
+const DEFAULT_RECENT_REPORTS_LIMIT = 120;
+
 async function queryRecentReports({
     cityAliases,
     includeCategoryJoin,
     withCityFilter,
+    offset = 0,
+    limit = DEFAULT_RECENT_REPORTS_LIMIT,
 }) {
+    const normalizedOffset = Number.isFinite(offset)
+        ? Math.max(0, Math.floor(offset))
+        : 0;
+    const normalizedLimit = Number.isFinite(limit)
+        ? Math.max(1, Math.floor(limit))
+        : DEFAULT_RECENT_REPORTS_LIMIT;
+
     const baseSelect = includeCategoryJoin
         ? `
             id, price, created_at, user_id,
@@ -20,15 +31,16 @@ async function queryRecentReports({
 
     let query = supabase
         .from("price_reports")
-        .select(baseSelect)
+        .select(baseSelect, { count: "exact" })
         .order("created_at", { ascending: false })
-        .limit(120);
+        .range(normalizedOffset, normalizedOffset + normalizedLimit - 1);
 
     if (withCityFilter) {
         query = query.in("markets.city", cityAliases);
     }
 
-    return query;
+    const { data, error, count } = await query;
+    return { data, error, count };
 }
 
 export async function getProducts() {
@@ -51,7 +63,6 @@ export async function getMarkets(city) {
         .order("name");
     if (error) throw error;
 
-    // Fallback seguro: si no hay mercados para la ciudad, mostrar catálogo general
     if (!data || data.length === 0) {
         const { data: fallbackData, error: fallbackError } = await supabase
             .from("markets")
@@ -65,44 +76,76 @@ export async function getMarkets(city) {
     return data;
 }
 
-export async function getRecentReports(city) {
+export async function getRecentReports(city, options = {}) {
+    const {
+        offset = 0,
+        limit = DEFAULT_RECENT_REPORTS_LIMIT,
+        withMeta = false,
+    } = options;
+
+    const normalizedOffset = Number.isFinite(offset)
+        ? Math.max(0, Math.floor(offset))
+        : 0;
+    const normalizedLimit = Number.isFinite(limit)
+        ? Math.max(1, Math.floor(limit))
+        : DEFAULT_RECENT_REPORTS_LIMIT;
+
     const cityCode = normalizeCityCode(city);
     const cityAliases = getCityAliases(cityCode);
+    let usedGlobalFallback = false;
 
-    // Intento 1: consulta completa con categoría embebida
-    let { data, error } = await queryRecentReports({
+    let result = await queryRecentReports({
         cityAliases,
         includeCategoryJoin: true,
         withCityFilter: true,
+        offset: normalizedOffset,
+        limit: normalizedLimit,
     });
 
-    // Intento 2: si falla join de categorías (RLS/permiso), degradar a consulta simple
-    if (error) {
-        const simpleQuery = await queryRecentReports({
+    if (result.error) {
+        result = await queryRecentReports({
             cityAliases,
             includeCategoryJoin: false,
             withCityFilter: true,
+            offset: normalizedOffset,
+            limit: normalizedLimit,
         });
-
-        data = simpleQuery.data;
-        error = simpleQuery.error;
     }
 
-    if (error) throw error;
+    if (result.error) throw result.error;
 
-    // Intento 3: si no hay resultados para ciudad, devolver reportes recientes globales
-    if (!data || data.length === 0) {
-        const fallbackQuery = await queryRecentReports({
+    if (!result.data || result.data.length === 0) {
+        usedGlobalFallback = true;
+        result = await queryRecentReports({
             cityAliases,
             includeCategoryJoin: false,
             withCityFilter: false,
+            offset: normalizedOffset,
+            limit: normalizedLimit,
         });
-
-        if (fallbackQuery.error) throw fallbackQuery.error;
-        return fallbackQuery.data || [];
     }
 
-    return data;
+    if (result.error) throw result.error;
+
+    const reports = result.data || [];
+    const totalCount = Number.isFinite(result.count) ? result.count : null;
+    const nextOffset = normalizedOffset + reports.length;
+    const hasMore =
+        totalCount === null
+            ? reports.length === normalizedLimit
+            : nextOffset < totalCount;
+
+    if (withMeta) {
+        return {
+            data: reports,
+            hasMore,
+            nextOffset,
+            totalCount,
+            usedGlobalFallback,
+        };
+    }
+
+    return reports;
 }
 
 export async function submitReport(reportData) {
@@ -112,6 +155,79 @@ export async function submitReport(reportData) {
         .select();
     if (error) throw error;
     return data;
+}
+
+export async function getReportCountByUser(userId) {
+    if (!userId) return 0;
+
+    const { count, error } = await supabase
+        .from("price_reports")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", userId);
+
+    if (error) throw error;
+    const parsedCount = Number(count);
+    if (Number.isFinite(parsedCount)) return parsedCount;
+
+    let total = 0;
+    let offset = 0;
+    const pageSize = 1000;
+
+    while (true) {
+        const { data, error: fallbackError } = await supabase
+            .from("price_reports")
+            .select("id")
+            .eq("user_id", userId)
+            .range(offset, offset + pageSize - 1);
+
+        if (fallbackError) throw fallbackError;
+
+        const currentBatch = Array.isArray(data) ? data.length : 0;
+        total += currentBatch;
+
+        if (currentBatch < pageSize) break;
+        offset += pageSize;
+    }
+
+    return total;
+}
+
+export async function getReportsByUser(userId) {
+    if (!userId) return [];
+
+    const { data, error } = await supabase
+        .from("price_reports")
+        .select(
+            `
+            id, price, created_at, reported_at,
+            products!inner(id, name, unit),
+            markets!inner(id, name)
+        `,
+        )
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false });
+
+    if (error) throw error;
+    return data || [];
+}
+
+export async function deleteReportById(reportId, userId) {
+    const normalizedReportId = Number(reportId);
+    if (!Number.isFinite(normalizedReportId)) {
+        throw new Error("Id de reporte inválido.");
+    }
+
+    let query = supabase
+        .from("price_reports")
+        .delete()
+        .eq("id", normalizedReportId);
+
+    if (userId) {
+        query = query.eq("user_id", userId);
+    }
+
+    const { error } = await query;
+    if (error) throw error;
 }
 
 export async function updateProfile(userId, updates) {
@@ -198,7 +314,6 @@ export async function getVoteSummaryByReportIds(reportIds) {
         summary[id] = { trueVotes: 0, falseVotes: 0 };
     });
 
-    // Recuento por usuario: se considera solo el voto mas reciente por (reporte, usuario).
     const seenUserVoteByReport = new Set();
 
     (data || []).forEach((vote) => {
