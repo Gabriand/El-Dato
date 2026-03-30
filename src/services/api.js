@@ -244,6 +244,67 @@ export async function getRecentReports(city, options = {}) {
     return reports;
 }
 
+export async function getPriceStatsByProductIds(city, productIds = []) {
+    const normalizedIds = (productIds || [])
+        .map((id) => Number(id))
+        .filter((id) => Number.isFinite(id));
+
+    if (normalizedIds.length === 0) {
+        return {};
+    }
+
+    const cityCode = normalizeCityCode(city);
+    const cityAliases = getCityAliases(cityCode);
+
+    const { data, error } = await withTimeout(
+        supabase
+            .from("price_reports")
+            .select(
+                `
+                product_id, price,
+                markets!inner(name, city)
+            `,
+            )
+            .in("product_id", normalizedIds)
+            .in("markets.city", cityAliases),
+        REQUEST_TIMEOUT_MS,
+        "estadísticas de precio por producto",
+    );
+
+    if (error) throw error;
+
+    const stats = {};
+
+    (data || []).forEach((row) => {
+        const productId = Number(row.product_id);
+        const parsedPrice = Number(row.price);
+
+        if (!Number.isFinite(productId) || !Number.isFinite(parsedPrice)) {
+            return;
+        }
+
+        if (!stats[productId]) {
+            stats[productId] = {
+                minPrice: parsedPrice,
+                maxPrice: parsedPrice,
+                minMarket: row.markets?.name || null,
+            };
+            return;
+        }
+
+        if (parsedPrice < stats[productId].minPrice) {
+            stats[productId].minPrice = parsedPrice;
+            stats[productId].minMarket = row.markets?.name || null;
+        }
+
+        if (parsedPrice > stats[productId].maxPrice) {
+            stats[productId].maxPrice = parsedPrice;
+        }
+    });
+
+    return stats;
+}
+
 export async function submitReport(reportData) {
     const { data, error } = await supabase
         .from("price_reports")

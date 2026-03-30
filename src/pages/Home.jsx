@@ -7,6 +7,7 @@ import EmptyState from "../components/EmptyState";
 import {
     addFavorite,
     getFavoriteProductIds,
+    getPriceStatsByProductIds,
     getRecentReports,
     removeFavorite,
 } from "../services/api";
@@ -90,6 +91,7 @@ export default function Home() {
     const [hasMoreReports, setHasMoreReports] = useState(false);
     const [isLoadingMoreReports, setIsLoadingMoreReports] = useState(false);
     const [reportsPageSize, setReportsPageSize] = useState(getHomePageSize);
+    const [priceStatsByProduct, setPriceStatsByProduct] = useState({});
     const backendSentinelRef = useRef(null);
 
     const userCity = normalizeCityCode(profile?.city);
@@ -117,13 +119,25 @@ export default function Home() {
                 withMeta: true,
             });
 
+            const productIds = Array.from(
+                new Set(
+                    (result.data || [])
+                        .map((report) => report?.products?.id)
+                        .filter((id) => Number.isFinite(Number(id))),
+                ),
+            );
+
+            const stats = await getPriceStatsByProductIds(userCity, productIds);
+
             setReports(result.data || []);
+            setPriceStatsByProduct(stats);
             setNextOffset(result.nextOffset || 0);
             setHasMoreReports(Boolean(result.hasMore));
         } catch (error) {
             console.error("Error cargando reportes:", error);
             toast.error("No se pudieron cargar los reportes en Inicio.");
             setReports([]);
+            setPriceStatsByProduct({});
             setNextOffset(0);
             setHasMoreReports(false);
         } finally {
@@ -260,9 +274,18 @@ export default function Home() {
             .map((item) => ({
                 ...item,
                 marketNames: Array.from(item.marketNames),
+                cheapestPrice:
+                    priceStatsByProduct[item.idProd]?.minPrice ??
+                    item.cheapestPrice,
+                expensivePrice:
+                    priceStatsByProduct[item.idProd]?.maxPrice ??
+                    item.expensivePrice,
+                cheapestMarket:
+                    priceStatsByProduct[item.idProd]?.minMarket ||
+                    item.cheapestMarket,
             }))
             .sort((a, b) => new Date(b.latestAt) - new Date(a.latestAt));
-    }, [reports]);
+    }, [priceStatsByProduct, reports]);
 
     const filteredCards = useMemo(() => {
         return productCards.filter((card) => {

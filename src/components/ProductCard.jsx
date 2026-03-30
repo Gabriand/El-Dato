@@ -18,10 +18,19 @@ export default function ProductCard({
         Carisimo: "bg-redb text-redt",
     };
 
-    const parsedCurrent = Number(precioActual);
-    const parsedPrevious = Number(precioAnterior);
-    const hasCurrent = Number.isFinite(parsedCurrent);
-    const hasPrevious = Number.isFinite(parsedPrevious);
+    const parsePrice = (value) => {
+        if (value === null || value === undefined || value === "") {
+            return null;
+        }
+
+        const parsed = Number(value);
+        return Number.isFinite(parsed) ? parsed : null;
+    };
+
+    const parsedCurrent = parsePrice(precioActual);
+    const parsedPrevious = parsePrice(precioAnterior);
+    const hasCurrent = parsedCurrent !== null;
+    const hasPrevious = parsedPrevious !== null;
 
     const minPrice = hasCurrent
         ? hasPrevious
