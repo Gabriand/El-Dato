@@ -1,52 +1,120 @@
 # 📍 El Dato - ¡Pilas con el ahorro!
 
-> **El Dato** es una plataforma diseñada para que los guayaquileños encuentren y reporten los precios más bajos en los mercados locales. ¡Porque en Guayaquil, pasar el dato es ley!
+> **El Dato** es una red comunitaria para reportar, comparar y validar precios reales de mercados locales por localidad.
+
+Proyecto desarrollado para la **Hackatón CubePath 2026**.
 
 ---
 
 ## 🚀 Demo
 
+- Demo en CubePath: PENDIENTE_AGREGAR_URL_PUBLICA
+- Video demo (GIF): [docs/gifs/demo.gif](docs/gifs/demo.gif)
+
+## 📸 Capturas / GIF
+
+- Home
+![Home](docs/capturas/01-home.png)
+
+- Comparar
+![Comparar](docs/capturas/02-comparar.png)
+
+- Reportar
+![Reportar](docs/capturas/03-reportar.png)
+
+- Perfil
+![Perfil](docs/capturas/04-perfil.png)
+
+- Canasta
+![Canasta](docs/capturas/05-canasta.png)
+
+- Demo GIF
+![Demo GIF](docs/gifs/demo.gif)
+
 ## 🧐 ¿Qué es El Dato?
-En tiempos de economía variable, encontrar "la hueca" con el arroz o la carne más barata es vital. **El Dato** permite a los usuarios:
-* **Consultar precios en tiempo real** de productos de la canasta básica.
-* **Reportar precios** directamente desde el mercado (Crowdsourcing).
-* **Comparar mercados** para decidir dónde rinde más el bolsillo.
+En tiempos de economía variable, comparar precios reales hace diferencia. El Dato permite a la comunidad:
 
-## 📸 Capturas y Vídeos
+- Consultar precios reportados por otros usuarios.
+- Comparar mercados por producto.
+- Reportar nuevos precios desde su localidad.
+- Votar la confiabilidad de los reportes.
+- Guardar productos clave en su canasta base.
 
+Actualmente, el proyecto trabaja con localidades como **Guayaquil, Quito y Cuenca** (arquitectura extensible a más ciudades).
 
-## 🛠️ Stack Tecnológico
-* **Frontend:** React.js + Tailwind CSS.
-* **Backend & DB:** Supabase (Postgres + Auth).
-* **Infraestructura:** CubePath (Servidor VPS).
+## ✨ Funcionalidades principales
+
+- Inicio con reportes recientes y búsqueda/filtro por categoría.
+- Comparador de precios por producto con favoritos.
+- Reporte de precios con autocompletado de producto y lugar.
+- Creación de nuevo producto/lugar desde el formulario.
+- Subida de imagen optimizada para nuevos productos.
+- Detalle de producto con historial de precios y votación comunitaria.
+- Detalle de mercado con reportes recientes.
+- Perfil de usuario con edición de datos y localidad.
+- Canasta base (favoritos) con último precio reportado.
+- Mis reportes con eliminación de aportes propios.
+
+## 🛠️ Stack tecnológico
+
+- Frontend: React 19 + Vite + Tailwind CSS 4.
+- Routing: React Router.
+- Backend/DB/Auth/Storage: Supabase.
+- Notificaciones: Sonner.
+- Infraestructura: CubePath (VPS).
+
+## 🧱 Arquitectura resumida
+
+- Rutas lazy-loaded con `React.lazy` + `Suspense`.
+- Rutas protegidas para secciones privadas (`/report`, `/profile`, `/edit-profile`, `/my-reports`, `/favorites`).
+- Paginación por backend en reportes (`offset`, `limit`, `withMeta`) e infinite scroll.
+- Normalización de localidad para filtrar datos por comunidad (`gye`, `uio`, `cue`).
+
+## 🗺️ Rutas principales
+
+- Públicas: `/`, `/welcome`, `/prices`, `/product/:id`, `/market/:id`, `/login`, `/register`.
+- Protegidas: `/report`, `/profile`, `/edit-profile`, `/my-reports`, `/favorites`.
+
+## ⚙️ Configuración local
+
+1. Clona el repositorio
+
+```bash
+git clone https://github.com/Gabriand/El-Dato.git
+cd El-Dato
+```
+
+2. Instala dependencias
+
+```bash
+npm install
+```
+
+3. Configura variables de entorno en `.env`
+
+```plaintext
+VITE_SUPABASE_URL=tu_url
+VITE_SUPABASE_PUBLISHABLE_DEFAULT_KEY=tu_key
+```
+
+4. Ejecuta en desarrollo
+
+```bash
+npm run dev
+```
 
 ## ☁️ Implementación en CubePath
 
-## ⚙️ Configuración Local
-Para correr este proyecto en tu máquina:
-
-1. Clona el repo:
-   ```bash
-   git clone https://github.com/Gabriand/El-Dato.git
-   ```
-
-2. Instala dependencias:
-   ```bash
-   npm install
-   ```
-
-3. Configura las variables de entorno (.env):
-   ```plaintext
-   VITE_SUPABASE_URL=tu_url
-   VITE_SUPABASE_ANON_KEY=tu_key
-   ```
-
-4. Corre el proyecto:
-   ```bash
-   npm run dev
-   ```
+- En CubePath se despliega el frontend generado con Vite para exponer una URL pública.
+- Flujo usado en este proyecto:
+  - Crear servidor en CubePath.
+  - Clonar repositorio e instalar dependencias.
+  - Configurar variables de entorno de Supabase.
+  - Ejecutar `npm run build` y publicar `dist/`.
+  - Validar funcionamiento de rutas y autenticación en producción.
 
 ## ⚖️ Licencia
-Este proyecto está bajo la licencia [MIT](LICENSE).
+
+Este proyecto está bajo licencia [MIT](LICENSE).
 
 Hecho con ❤️ en Guayaquil para la Hackatón CubePath 2026.

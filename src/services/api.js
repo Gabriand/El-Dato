@@ -2,6 +2,26 @@ import { supabase } from "./supabaseClient";
 import { getCityAliases, normalizeCityCode } from "../utils/city";
 
 const DEFAULT_RECENT_REPORTS_LIMIT = 120;
+const REQUEST_TIMEOUT_MS = 12000;
+
+const withTimeout = async (
+    promise,
+    timeoutMs = REQUEST_TIMEOUT_MS,
+    label = "consulta",
+) => {
+    let timeoutId;
+    const timeoutPromise = new Promise((_, reject) => {
+        timeoutId = setTimeout(() => {
+            reject(new Error(`Tiempo de espera agotado en ${label}.`));
+        }, timeoutMs);
+    });
+
+    try {
+        return await Promise.race([promise, timeoutPromise]);
+    } finally {
+        clearTimeout(timeoutId);
+    }
+};
 
 async function queryRecentReports({
     cityAliases,
@@ -39,24 +59,30 @@ async function queryRecentReports({
         query = query.in("markets.city", cityAliases);
     }
 
-    const { data, error, count } = await query;
+    const { data, error, count } = await withTimeout(
+        query,
+        REQUEST_TIMEOUT_MS,
+        "reportes recientes",
+    );
     return { data, error, count };
 }
 
 export async function getProducts() {
-    const { data, error } = await supabase
-        .from("products")
-        .select("*")
-        .order("name");
+    const { data, error } = await withTimeout(
+        supabase.from("products").select("*").order("name"),
+        REQUEST_TIMEOUT_MS,
+        "productos",
+    );
     if (error) throw error;
     return data;
 }
 
 export async function getCategories() {
-    const { data, error } = await supabase
-        .from("categories")
-        .select("id, name")
-        .order("name");
+    const { data, error } = await withTimeout(
+        supabase.from("categories").select("id, name").order("name"),
+        REQUEST_TIMEOUT_MS,
+        "categorías",
+    );
 
     if (error) throw error;
     return data || [];
@@ -121,18 +147,23 @@ export async function getMarkets(city) {
     const cityCode = normalizeCityCode(city);
     const cityAliases = getCityAliases(cityCode);
 
-    const { data, error } = await supabase
-        .from("markets")
-        .select("*")
-        .in("city", cityAliases)
-        .order("name");
+    const { data, error } = await withTimeout(
+        supabase
+            .from("markets")
+            .select("*")
+            .in("city", cityAliases)
+            .order("name"),
+        REQUEST_TIMEOUT_MS,
+        "mercados de la localidad",
+    );
     if (error) throw error;
 
     if (!data || data.length === 0) {
-        const { data: fallbackData, error: fallbackError } = await supabase
-            .from("markets")
-            .select("*")
-            .order("name");
+        const { data: fallbackData, error: fallbackError } = await withTimeout(
+            supabase.from("markets").select("*").order("name"),
+            REQUEST_TIMEOUT_MS,
+            "mercados globales",
+        );
 
         if (fallbackError) throw fallbackError;
         return fallbackData;
@@ -225,10 +256,14 @@ export async function submitReport(reportData) {
 export async function getReportCountByUser(userId) {
     if (!userId) return 0;
 
-    const { count, error } = await supabase
-        .from("price_reports")
-        .select("id", { count: "exact", head: true })
-        .eq("user_id", userId);
+    const { count, error } = await withTimeout(
+        supabase
+            .from("price_reports")
+            .select("id", { count: "exact", head: true })
+            .eq("user_id", userId),
+        REQUEST_TIMEOUT_MS,
+        "conteo de reportes",
+    );
 
     if (error) throw error;
     const parsedCount = Number(count);
@@ -239,11 +274,15 @@ export async function getReportCountByUser(userId) {
     const pageSize = 1000;
 
     while (true) {
-        const { data, error: fallbackError } = await supabase
-            .from("price_reports")
-            .select("id")
-            .eq("user_id", userId)
-            .range(offset, offset + pageSize - 1);
+        const { data, error: fallbackError } = await withTimeout(
+            supabase
+                .from("price_reports")
+                .select("id")
+                .eq("user_id", userId)
+                .range(offset, offset + pageSize - 1),
+            REQUEST_TIMEOUT_MS,
+            "conteo paginado de reportes",
+        );
 
         if (fallbackError) throw fallbackError;
 
