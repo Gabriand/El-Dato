@@ -13,23 +13,21 @@ Proyecto desarrollado para la **Hackatón CubePath 2026**.
 
 ## 📸 Capturas / GIF
 
-- Home
-![Home](docs/capturas/01-home.png)
+| Home | Comparar |
+| --- | --- |
+| <img src="docs/capturas/01-home.png" alt="Home" width="180" /> | <img src="docs/capturas/02-comparar.png" alt="Comparar" width="180" /> |
 
-- Comparar
-![Comparar](docs/capturas/02-comparar.png)
+| Reportar | Perfil |
+| --- | --- |
+| <img src="docs/capturas/03-reportar.png" alt="Reportar" width="180" /> | <img src="docs/capturas/04-perfil.png" alt="Perfil" width="180" /> |
 
-- Reportar
-![Reportar](docs/capturas/03-reportar.png)
+| Canasta |  |
+| --- | --- |
+| <img src="docs/capturas/05-canasta.png" alt="Canasta" width="180" /> |  |
 
-- Perfil
-![Perfil](docs/capturas/04-perfil.png)
+### 🎬 Demo GIF
 
-- Canasta
-![Canasta](docs/capturas/05-canasta.png)
-
-- Demo GIF
-![Demo GIF](docs/gifs/demo.gif)
+<img src="docs/gifs/demo.gif" alt="Demo GIF" width="230" />
 
 ## 🧐 ¿Qué es El Dato?
 En tiempos de economía variable, comparar precios reales hace diferencia. El Dato permite a la comunidad:
