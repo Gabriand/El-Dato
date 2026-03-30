@@ -305,7 +305,6 @@ export default function ProductDetail() {
                         <h2 className="text-2xl font-bold text-gray-800">
                             {product.name}
                         </h2>
-                        {/* Se puede cargar la categoria dinamicamente luego, por ahora dejamos un fallback para el hackathon */}
                         <span className="text-muted font-semibold text-sm">
                             Medida: {product.unit}
                         </span>
@@ -346,71 +345,67 @@ export default function ProductDetail() {
                             return (
                                 <li
                                     key={report.id}
-                                    className={`group flex flex-col gap-3 pt-2 pb-3 sm:flex-row sm:items-center sm:justify-between ${idx < reports.length - 1 ? "border-b border-surface" : ""}`}
+                                    className={`group flex flex-col gap-3 pt-2 pb-3 sm:flex-row sm:items-center sm:justify-between md:flex-col md:items-stretch md:justify-start lg:flex-row lg:flex-wrap lg:justify-center ${idx < reports.length - 1 ? "border-b border-surface" : ""}`}
                                 >
-                                    <div className="flex flex-col">
-                                        <span className="font-semibold text-gray-700">
-                                            {report.markets.name}
-                                        </span>
-                                        {isCheapest ? (
-                                            <span className="text-xs px-2 py-0.5 rounded-md w-max mt-1 text-greent bg-greenb font-semibold">
-                                                Más barato
+                                    <div className="flex md:w-full lg:w-full">
+                                        <div className="flex w-full flex-col lg:w-full">
+                                            <span className="font-semibold text-gray-700">
+                                                {report.markets.name}
                                             </span>
-                                        ) : (
-                                            <span className="text-xs px-2 py-0.5 rounded-md w-max mt-1 text-muted bg-surface/50 font-semibold">
-                                                Confirmado
-                                            </span>
-                                        )}
-                                    </div>
-                                    <div className="mt-1 flex w-full flex-col gap-1.5 sm:mt-2 sm:w-auto sm:items-end">
-                                        <span
-                                            className={`self-end text-xl font-bold ${isCheapest ? "text-primary" : "text-gray-800"}`}
-                                        >
-                                            $
-                                            {parseFloat(report.price).toFixed(
-                                                2,
+                                            {isCheapest ? (
+                                                <span className="text-xs px-2 py-0.5 rounded-md w-max mt-1 text-greent bg-greenb font-semibold">
+                                                    Más barato
+                                                </span>
+                                            ) : (
+                                                <span className="text-xs px-2 py-0.5 rounded-md w-max mt-1 text-muted bg-surface/50 font-semibold">
+                                                    Confirmado
+                                                </span>
                                             )}
-                                        </span>
-                                        <div className="mt-1 grid w-full grid-cols-2 gap-2 sm:mt-2 sm:flex sm:w-auto sm:items-center">
-                                            <button
-                                                onClick={() =>
-                                                    handleVote(
-                                                        report.id,
-                                                        "true",
-                                                    )
-                                                }
-                                                className="flex min-w-0 w-full items-center justify-center gap-1 rounded-xl border border-surface bg-bg px-2 py-2 text-xs font-bold text-gray-700 shadow-sm transition-all active:scale-95 hover:border-green-300 hover:bg-green-50 hover:text-green-700 sm:w-auto sm:gap-1.5 sm:px-3 sm:text-sm"
-                                            >
-                                                <span className="text-base sm:text-lg">
-                                                    👍
-                                                </span>
-                                                <span className="truncate">
-                                                    Cierto
-                                                </span>
-                                                <span className="rounded-md bg-greenb px-1.5 py-0.5 text-xs font-extrabold text-greent">
-                                                    {truePercent}%
-                                                </span>
-                                            </button>
-                                            <button
-                                                onClick={() =>
-                                                    handleVote(
-                                                        report.id,
-                                                        "false",
-                                                    )
-                                                }
-                                                className="flex min-w-0 w-full items-center justify-center gap-1 rounded-xl border border-surface bg-bg px-2 py-2 text-xs font-bold text-gray-700 shadow-sm transition-all active:scale-95 hover:border-red-300 hover:bg-red-50 hover:text-red-700 sm:w-auto sm:gap-1.5 sm:px-3 sm:text-sm"
-                                            >
-                                                <span className="text-base sm:text-lg">
-                                                    👎
-                                                </span>
-                                                <span className="truncate">
-                                                    Falso
-                                                </span>
-                                                <span className="rounded-md bg-redb px-1.5 py-0.5 text-xs font-extrabold text-redt">
-                                                    {falsePercent}%
-                                                </span>
-                                            </button>
                                         </div>
+                                        <div className="mt-1 flex w-full flex-col gap-1.5 sm:mt-2 sm:w-auto sm:items-end md:w-full md:items-end lg:w-auto">
+                                            <span
+                                                className={`self-end text-xl font-bold ${isCheapest ? "text-primary" : "text-gray-800"}`}
+                                            >
+                                                $
+                                                {parseFloat(
+                                                    report.price,
+                                                ).toFixed(2)}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div className="mt-1 grid w-full grid-cols-2 gap-2 sm:mt-2 sm:flex sm:w-auto sm:items-center md:grid md:w-full md:grid-cols-2 md:items-center lg:flex lg:w-auto">
+                                        <button
+                                            onClick={() =>
+                                                handleVote(report.id, "true")
+                                            }
+                                            className="flex min-w-0 w-full items-center justify-center gap-1 rounded-xl border border-surface bg-bg px-2 py-2 text-xs font-bold text-gray-700 shadow-sm transition-all active:scale-95 hover:border-green-300 hover:bg-green-50 hover:text-green-700 sm:w-auto sm:gap-1.5 sm:px-3 sm:text-sm md:w-full lg:w-auto"
+                                        >
+                                            <span className="text-base sm:text-lg">
+                                                👍
+                                            </span>
+                                            <span className="truncate">
+                                                Cierto
+                                            </span>
+                                            <span className="rounded-md bg-greenb px-1.5 py-0.5 text-xs font-extrabold text-greent">
+                                                {truePercent}%
+                                            </span>
+                                        </button>
+                                        <button
+                                            onClick={() =>
+                                                handleVote(report.id, "false")
+                                            }
+                                            className="flex min-w-0 w-full items-center justify-center gap-1 rounded-xl border border-surface bg-bg px-2 py-2 text-xs font-bold text-gray-700 shadow-sm transition-all active:scale-95 hover:border-red-300 hover:bg-red-50 hover:text-red-700 sm:w-auto sm:gap-1.5 sm:px-3 sm:text-sm md:w-full lg:w-auto"
+                                        >
+                                            <span className="text-base sm:text-lg">
+                                                👎
+                                            </span>
+                                            <span className="truncate">
+                                                Falso
+                                            </span>
+                                            <span className="rounded-md bg-redb px-1.5 py-0.5 text-xs font-extrabold text-redt">
+                                                {falsePercent}%
+                                            </span>
+                                        </button>
                                     </div>
                                 </li>
                             );
