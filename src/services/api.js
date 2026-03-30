@@ -52,6 +52,71 @@ export async function getProducts() {
     return data;
 }
 
+export async function getCategories() {
+    const { data, error } = await supabase
+        .from("categories")
+        .select("id, name")
+        .order("name");
+
+    if (error) throw error;
+    return data || [];
+}
+
+export async function createProduct({ name, unit, categoryId, imageUrl }) {
+    const normalizedName = String(name || "").trim();
+    const normalizedUnit = String(unit || "unidad").trim();
+    const normalizedCategoryId = Number(categoryId);
+
+    if (!normalizedName) {
+        throw new Error("El nombre del producto es obligatorio.");
+    }
+
+    if (!Number.isFinite(normalizedCategoryId)) {
+        throw new Error("Debes seleccionar una categoría válida.");
+    }
+
+    const { data, error } = await supabase
+        .from("products")
+        .insert([
+            {
+                name: normalizedName,
+                unit: normalizedUnit || "unidad",
+                category_id: normalizedCategoryId,
+                image_url: imageUrl || null,
+            },
+        ])
+        .select("id, name, unit, image_url, category_id")
+        .single();
+
+    if (error) throw error;
+    return data;
+}
+
+export async function createMarket({ name, location, city }) {
+    const normalizedName = String(name || "").trim();
+    const normalizedLocation = String(location || "").trim();
+    const normalizedCity = normalizeCityCode(city);
+
+    if (!normalizedName) {
+        throw new Error("El nombre del mercado es obligatorio.");
+    }
+
+    const { data, error } = await supabase
+        .from("markets")
+        .insert([
+            {
+                name: normalizedName,
+                location: normalizedLocation || null,
+                city: normalizedCity,
+            },
+        ])
+        .select("id, name, location, city")
+        .single();
+
+    if (error) throw error;
+    return data;
+}
+
 export async function getMarkets(city) {
     const cityCode = normalizeCityCode(city);
     const cityAliases = getCityAliases(cityCode);

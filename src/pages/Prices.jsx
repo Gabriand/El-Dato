@@ -3,8 +3,10 @@ import TopBar from "../components/TopBar";
 import FilterBar from "../components/FilterBar";
 import EmptyState from "../components/EmptyState";
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import { Link } from "react-router-dom";
 import {
     addFavorite,
+    getCategories,
     getFavoriteProductIds,
     getRecentReports,
     removeFavorite,
@@ -13,26 +15,6 @@ import { useAuth } from "../context/AuthContext";
 import { toast } from "sonner";
 import { normalizeCityCode } from "../utils/city";
 import useInfiniteCardLoader from "../hooks/useInfiniteCardLoader";
-
-const LATAM_CATEGORIES = [
-    "Todos",
-    "Abarrotes",
-    "Cereales",
-    "Legumbres",
-    "Frutas",
-    "Verduras",
-    "Tubérculos",
-    "Lácteos",
-    "Carnes",
-    "Pescados y mariscos",
-    "Huevos",
-    "Panadería",
-    "Bebidas",
-    "Aseo personal",
-    "Limpieza del hogar",
-    "Congelados",
-    "Snacks",
-];
 
 const normalizeText = (value) =>
     String(value || "")
@@ -102,6 +84,7 @@ export default function Prices() {
     const { profile, user } = useAuth();
     const [reports, setReports] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [filterCategories, setFilterCategories] = useState(["Todos"]);
     const [activeCategory, setActiveCategory] = useState("Todos");
     const [favoriteIds, setFavoriteIds] = useState([]);
     const [nextOffset, setNextOffset] = useState(0);
@@ -149,11 +132,37 @@ export default function Prices() {
         }
     }, [reportsPageSize, userCity]);
 
+    const loadFilterCategories = useCallback(async () => {
+        try {
+            const categoriesData = await getCategories();
+
+            const seen = new Set();
+            const nextCategories = ["Todos"];
+
+            for (const category of categoriesData || []) {
+                const name = String(category?.name || "").trim();
+                if (!name) continue;
+
+                const key = normalizeText(name);
+                if (!key || key === "todos" || seen.has(key)) continue;
+
+                seen.add(key);
+                nextCategories.push(name);
+            }
+
+            setFilterCategories(nextCategories);
+        } catch (error) {
+            console.error("Error cargando categorias:", error);
+            setFilterCategories(["Todos"]);
+        }
+    }, []);
+
     useEffect(() => {
         if (profile === undefined) return;
 
         loadInitialReports();
-    }, [loadInitialReports, profile]);
+        loadFilterCategories();
+    }, [loadFilterCategories, loadInitialReports, profile]);
 
     useEffect(() => {
         const loadFavorites = async () => {
@@ -379,7 +388,7 @@ export default function Prices() {
 
                 <div className="mb-6">
                     <FilterBar
-                        categories={LATAM_CATEGORIES}
+                        categories={filterCategories}
                         activeCategory={activeCategory}
                         onSelect={setActiveCategory}
                     />
@@ -396,6 +405,13 @@ export default function Prices() {
                                 const isFavorite = favoriteIds.includes(
                                     item.id,
                                 );
+                                const visibleMarkets = item.markets.slice(0, 2);
+                                const nextMarket = item.markets[2] || null;
+                                const hiddenMarketsCount = Math.max(
+                                    item.markets.length - 2,
+                                    0,
+                                );
+
                                 return (
                                     <div
                                         key={item.id}
@@ -444,9 +460,9 @@ export default function Prices() {
                                         </div>
 
                                         <ul className="flex flex-col gap-3">
-                                            {item.markets.map((market, i) => (
+                                            {visibleMarkets.map((market) => (
                                                 <li
-                                                    key={i}
+                                                    key={market.id}
                                                     className="flex justify-between items-center group"
                                                 >
                                                     <div className="flex flex-col">
@@ -468,6 +484,45 @@ export default function Prices() {
                                                 </li>
                                             ))}
                                         </ul>
+
+                                        {nextMarket && (
+                                            <Link
+                                                to={`/product/${item.id}`}
+                                                className="group block mt-3"
+                                            >
+                                                <div className="relative overflow-hidden rounded-xl bg-white">
+                                                    <div className="py-2 flex justify-between items-center opacity-65">
+                                                        <div className="flex flex-col">
+                                                            <span className="font-semibold text-gray-700">
+                                                                {
+                                                                    nextMarket.name
+                                                                }
+                                                            </span>
+                                                            <span
+                                                                className={`text-xs px-2 py-0.5 rounded-md w-max mt-1 ${nextMarket.color} font-bold`}
+                                                            >
+                                                                {nextMarket.tag}
+                                                            </span>
+                                                        </div>
+                                                        <div className="text-xl font-bold text-primary">
+                                                            $
+                                                            {nextMarket.price.toFixed(
+                                                                2,
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                    <div className="absolute inset-0 pointer-events-none bg-linear-to-b from-transparent via-white/70 to-white" />
+                                                </div>
+                                                <p className="mt-2 text-sm font-semibold text-primary group-hover:underline">
+                                                    Ver {hiddenMarketsCount}{" "}
+                                                    mercado
+                                                    {hiddenMarketsCount === 1
+                                                        ? ""
+                                                        : "s"}{" "}
+                                                    más en detalle →
+                                                </p>
+                                            </Link>
+                                        )}
                                     </div>
                                 );
                             })}

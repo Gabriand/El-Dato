@@ -2,9 +2,18 @@ import { useState, useEffect, useMemo } from "react";
 import NavBar from "../components/NavBar";
 import TopBar from "../components/TopBar";
 import { toast } from "sonner";
-import { getProducts, getMarkets, submitReport } from "../services/api";
+import {
+    createMarket,
+    createProduct,
+    getCategories,
+    getProducts,
+    getMarkets,
+    submitReport,
+} from "../services/api";
 import { useAuth } from "../context/AuthContext";
 import { normalizeCityCode } from "../utils/city";
+import { optimizeImageForUpload } from "../utils/imageUpload";
+import { supabase } from "../services/supabaseClient";
 
 const normalizeText = (value) =>
     String(value || "")
@@ -13,11 +22,18 @@ const normalizeText = (value) =>
         .toLowerCase()
         .trim();
 
+const sortByName = (a, b) =>
+    String(a?.name || "").localeCompare(String(b?.name || ""), "es", {
+        sensitivity: "base",
+    });
+
 export default function Report() {
     const { profile, user } = useAuth();
+    const userCity = normalizeCityCode(profile?.city);
 
     const [products, setProducts] = useState([]);
     const [markets, setMarkets] = useState([]);
+    const [categories, setCategories] = useState([]);
     const [isLoadingData, setIsLoadingData] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -26,6 +42,21 @@ export default function Report() {
     const [price, setPrice] = useState("");
     const [productSearch, setProductSearch] = useState("");
     const [marketSearch, setMarketSearch] = useState("");
+    const [showProductSuggestions, setShowProductSuggestions] = useState(false);
+    const [showMarketSuggestions, setShowMarketSuggestions] = useState(false);
+
+    const [showCreateProduct, setShowCreateProduct] = useState(false);
+    const [showCreateMarket, setShowCreateMarket] = useState(false);
+
+    const [newProductName, setNewProductName] = useState("");
+    const [newProductUnit, setNewProductUnit] = useState("");
+    const [newProductCategoryId, setNewProductCategoryId] = useState("");
+    const [newProductImage, setNewProductImage] = useState(null);
+    const [isSavingProduct, setIsSavingProduct] = useState(false);
+
+    const [newMarketName, setNewMarketName] = useState("");
+    const [newMarketLocation, setNewMarketLocation] = useState("");
+    const [isSavingMarket, setIsSavingMarket] = useState(false);
 
     const filteredProducts = useMemo(() => {
         const term = normalizeText(productSearch);
@@ -49,17 +80,41 @@ export default function Report() {
         });
     }, [markets, marketSearch]);
 
+    const productSuggestions = useMemo(() => {
+        const term = normalizeText(productSearch);
+        if (!term) return [];
+        return filteredProducts.slice(0, 6);
+    }, [filteredProducts, productSearch]);
+
+    const marketSuggestions = useMemo(() => {
+        const term = normalizeText(marketSearch);
+        if (!term) return [];
+        return filteredMarkets.slice(0, 6);
+    }, [filteredMarkets, marketSearch]);
+
+    const productById = useMemo(
+        () => new Map(products.map((product) => [String(product.id), product])),
+        [products],
+    );
+
+    const marketById = useMemo(
+        () => new Map(markets.map((market) => [String(market.id), market])),
+        [markets],
+    );
+
     useEffect(() => {
         const loadFormData = async () => {
             setIsLoadingData(true);
             try {
-                const userCity = normalizeCityCode(profile?.city);
-                const [productsData, marketsData] = await Promise.all([
-                    getProducts(),
-                    getMarkets(userCity),
-                ]);
+                const [productsData, marketsData, categoriesData] =
+                    await Promise.all([
+                        getProducts(),
+                        getMarkets(userCity),
+                        getCategories(),
+                    ]);
                 setProducts(productsData || []);
                 setMarkets(marketsData || []);
+                setCategories(categoriesData || []);
             } catch (error) {
                 console.error("Error cargando base de datos:", error);
                 toast.error("Error al cargar los productos.");
@@ -71,7 +126,130 @@ export default function Report() {
         if (profile !== undefined) {
             loadFormData();
         }
-    }, [profile]);
+    }, [profile, userCity]);
+
+    useEffect(() => {
+        if (!newProductCategoryId && categories.length > 0) {
+            setNewProductCategoryId(String(categories[0].id));
+        }
+    }, [categories, newProductCategoryId]);
+
+    const handlePickProductSuggestion = (product) => {
+        setSelectedProduct(String(product.id));
+        setProductSearch(product.name);
+        setShowProductSuggestions(false);
+    };
+
+    const handlePickMarketSuggestion = (market) => {
+        setSelectedMarket(String(market.id));
+        setMarketSearch(market.name);
+        setShowMarketSuggestions(false);
+    };
+
+    const handleCreateProduct = async () => {
+        const normalizedName = newProductName.trim();
+        if (!normalizedName) {
+            toast.error("Escribe el nombre del producto.");
+            return;
+        }
+
+        if (!newProductCategoryId) {
+            toast.error("Selecciona una categoría.");
+            return;
+        }
+
+        setIsSavingProduct(true);
+        try {
+            let imageUrl = null;
+
+            if (newProductImage) {
+                const optimizedFile = await optimizeImageForUpload(
+                    newProductImage,
+                    {
+                        maxWidth: 1200,
+                        maxHeight: 1200,
+                        quality: 0.82,
+                        outputType: "image/webp",
+                    },
+                );
+
+                const fileExt = optimizedFile.name.split(".").pop();
+                const safeName = normalizedName.replace(/[^a-zA-Z0-9_-]/g, "");
+                const fileName = `${safeName || "producto"}-${Date.now()}.${fileExt}`;
+                const filePath = `products/${fileName}`;
+
+                const { error: uploadError } = await supabase.storage
+                    .from("avatars")
+                    .upload(filePath, optimizedFile, {
+                        contentType: optimizedFile.type,
+                        cacheControl: "3600",
+                        upsert: false,
+                    });
+
+                if (uploadError) throw uploadError;
+
+                const { data } = supabase.storage
+                    .from("avatars")
+                    .getPublicUrl(filePath);
+                imageUrl = data.publicUrl;
+            }
+
+            const createdProduct = await createProduct({
+                name: normalizedName,
+                unit: newProductUnit.trim() || "unidad",
+                categoryId: Number(newProductCategoryId),
+                imageUrl,
+            });
+
+            setProducts((prev) => [...prev, createdProduct].sort(sortByName));
+            setSelectedProduct(String(createdProduct.id));
+            setProductSearch(createdProduct.name);
+
+            setShowCreateProduct(false);
+            setNewProductName("");
+            setNewProductUnit("unidad");
+            setNewProductImage(null);
+
+            toast.success("Producto creado y seleccionado.");
+        } catch (error) {
+            console.error("Error creando producto:", error);
+            toast.error(error.message || "No se pudo crear el producto.");
+        } finally {
+            setIsSavingProduct(false);
+        }
+    };
+
+    const handleCreateMarket = async () => {
+        const normalizedName = newMarketName.trim();
+        if (!normalizedName) {
+            toast.error("Escribe el nombre del mercado.");
+            return;
+        }
+
+        setIsSavingMarket(true);
+        try {
+            const createdMarket = await createMarket({
+                name: normalizedName,
+                location: newMarketLocation,
+                city: userCity,
+            });
+
+            setMarkets((prev) => [...prev, createdMarket].sort(sortByName));
+            setSelectedMarket(String(createdMarket.id));
+            setMarketSearch(createdMarket.name);
+
+            setShowCreateMarket(false);
+            setNewMarketName("");
+            setNewMarketLocation("");
+
+            toast.success("Lugar creado y seleccionado.");
+        } catch (error) {
+            console.error("Error creando mercado:", error);
+            toast.error(error.message || "No se pudo crear el lugar.");
+        } finally {
+            setIsSavingMarket(false);
+        }
+    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -80,18 +258,24 @@ export default function Report() {
             return toast.error("Selecciona un producto y un mercado.");
         }
 
+        const parsedPrice = Number(price);
+        if (!Number.isFinite(parsedPrice) || parsedPrice <= 0) {
+            return toast.error("Ingresa un precio válido mayor a 0.");
+        }
+
         setIsSubmitting(true);
         try {
             await submitReport({
                 product_id: parseInt(selectedProduct),
                 market_id: parseInt(selectedMarket),
                 user_id: user.id,
-                price: parseFloat(price),
+                price: parsedPrice,
             });
 
             toast.success("¡Mil gracias! Has ayudado a tu comunidad 🏆");
 
             setSelectedProduct("");
+            setProductSearch("");
             setPrice("");
         } catch (error) {
             console.error(error);
@@ -143,16 +327,64 @@ export default function Report() {
                             >
                                 Buscar producto
                             </label>
-                            <input
-                                id="productSearch"
-                                type="search"
-                                value={productSearch}
-                                onChange={(e) =>
-                                    setProductSearch(e.target.value)
-                                }
-                                placeholder="Ej: arroz, tomate, queso"
-                                className="w-full bg-surface/20 border border-surface p-3 rounded-xl outline-none focus:border-primary transition-colors text-gray-800"
-                            />
+                            <div className="relative">
+                                <input
+                                    id="productSearch"
+                                    type="search"
+                                    value={productSearch}
+                                    onChange={(e) => {
+                                        setProductSearch(e.target.value);
+                                        setSelectedProduct("");
+                                        setShowProductSuggestions(true);
+                                    }}
+                                    onFocus={() =>
+                                        setShowProductSuggestions(true)
+                                    }
+                                    onBlur={() => {
+                                        window.setTimeout(
+                                            () =>
+                                                setShowProductSuggestions(
+                                                    false,
+                                                ),
+                                            120,
+                                        );
+                                    }}
+                                    onKeyDown={(e) => {
+                                        if (e.key === "Escape") {
+                                            setShowProductSuggestions(false);
+                                        }
+                                    }}
+                                    placeholder="Ej: arroz, tomate, queso"
+                                    className="w-full bg-surface/20 border border-surface p-3 rounded-xl outline-none focus:border-primary transition-colors text-gray-800"
+                                />
+                                {showProductSuggestions &&
+                                    productSuggestions.length > 0 && (
+                                        <ul className="absolute z-20 mt-1 w-full max-h-56 overflow-auto rounded-xl border border-surface bg-white shadow-lg">
+                                            {productSuggestions.map(
+                                                (product) => (
+                                                    <li key={product.id}>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() =>
+                                                                handlePickProductSuggestion(
+                                                                    product,
+                                                                )
+                                                            }
+                                                            className="w-full px-3 py-2 text-left hover:bg-tone transition-colors"
+                                                        >
+                                                            <span className="font-semibold text-gray-800">
+                                                                {product.name}
+                                                            </span>
+                                                            <span className="text-xs text-muted ml-1">
+                                                                ({product.unit})
+                                                            </span>
+                                                        </button>
+                                                    </li>
+                                                ),
+                                            )}
+                                        </ul>
+                                    )}
+                            </div>
 
                             <label
                                 htmlFor="product"
@@ -164,9 +396,16 @@ export default function Report() {
                                 id="product"
                                 required
                                 value={selectedProduct}
-                                onChange={(e) =>
-                                    setSelectedProduct(e.target.value)
-                                }
+                                onChange={(e) => {
+                                    const selectedId = e.target.value;
+                                    setSelectedProduct(selectedId);
+                                    setShowProductSuggestions(false);
+
+                                    const product = productById.get(selectedId);
+                                    if (product) {
+                                        setProductSearch(product.name);
+                                    }
+                                }}
                                 className="w-full bg-surface/30 border-2 border-surface p-3.5 rounded-xl outline-none focus:border-primary transition-colors text-gray-800"
                             >
                                 {filteredProducts.length === 0 ? (
@@ -181,7 +420,7 @@ export default function Report() {
                                         {filteredProducts.map((prod) => (
                                             <option
                                                 key={prod.id}
-                                                value={prod.id}
+                                                value={String(prod.id)}
                                             >
                                                 {prod.name} ({prod.unit})
                                             </option>
@@ -199,14 +438,127 @@ export default function Report() {
                             <button
                                 type="button"
                                 onClick={() =>
-                                    toast.info(
-                                        "Contacta al soporte para agregar productos.",
-                                    )
+                                    setShowCreateProduct((current) => !current)
                                 }
                                 className="text-left mt-0.5 text-primary text-sm font-semibold hover:underline w-max transition-colors"
                             >
                                 + Agregar nuevo producto
                             </button>
+
+                            {showCreateProduct && (
+                                <div className="mt-2 rounded-xl border border-surface bg-white/70 p-4 flex flex-col gap-3">
+                                    <input
+                                        type="text"
+                                        value={newProductName}
+                                        onChange={(e) =>
+                                            setNewProductName(e.target.value)
+                                        }
+                                        placeholder="Nombre del producto"
+                                        className="w-full bg-surface/20 border border-surface p-3 rounded-xl outline-none focus:border-primary transition-colors text-gray-800"
+                                    />
+                                    <input
+                                        type="text"
+                                        value={newProductUnit}
+                                        onChange={(e) =>
+                                            setNewProductUnit(e.target.value)
+                                        }
+                                        placeholder="Unidad (kg, lb, litro, unidad...)"
+                                        className="w-full bg-surface/20 border border-surface p-3 rounded-xl outline-none focus:border-primary transition-colors text-gray-800"
+                                    />
+                                    <select
+                                        value={newProductCategoryId}
+                                        onChange={(e) =>
+                                            setNewProductCategoryId(
+                                                e.target.value,
+                                            )
+                                        }
+                                        className="w-full bg-surface/20 border border-surface p-3 rounded-xl outline-none focus:border-primary transition-colors text-gray-800"
+                                    >
+                                        {categories.map((category) => (
+                                            <option
+                                                key={category.id}
+                                                value={String(category.id)}
+                                            >
+                                                {category.name}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    <p className="text-xs text-muted">
+                                        Categorias disponibles:{" "}
+                                        {categories.length}
+                                    </p>
+                                    <div className="flex flex-col gap-2">
+                                        <label
+                                            htmlFor="newProductImage"
+                                            className="font-semibold text-gray-700 text-sm"
+                                        >
+                                            Imagen del producto
+                                        </label>
+                                        <label
+                                            htmlFor="newProductImage"
+                                            className="w-full bg-surface/20 border border-surface p-3 rounded-xl cursor-pointer text-gray-800 hover:border-primary transition-colors flex flex-col items-center justify-center gap-2 text-center"
+                                        >
+                                            <svg
+                                                xmlns="http://www.w3.org/2000/svg"
+                                                viewBox="0 0 24 24"
+                                                fill="none"
+                                                stroke="currentColor"
+                                                strokeWidth="1.8"
+                                                className="h-7 w-7 text-primary"
+                                                aria-hidden="true"
+                                            >
+                                                <path
+                                                    d="M12 16V4m0 0-4 4m4-4 4 4"
+                                                    strokeLinecap="round"
+                                                    strokeLinejoin="round"
+                                                />
+                                                <path
+                                                    d="M5 14v3a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-3"
+                                                    strokeLinecap="round"
+                                                    strokeLinejoin="round"
+                                                />
+                                            </svg>
+                                            <span>
+                                                {newProductImage
+                                                    ? `Imagen seleccionada: ${newProductImage.name}`
+                                                    : "Subir imagen del producto"}
+                                            </span>
+                                        </label>
+                                        <input
+                                            id="newProductImage"
+                                            type="file"
+                                            accept="image/*"
+                                            onChange={(e) =>
+                                                setNewProductImage(
+                                                    e.target.files?.[0] || null,
+                                                )
+                                            }
+                                            className="hidden"
+                                        />
+                                    </div>
+                                    <div className="flex gap-2">
+                                        <button
+                                            type="button"
+                                            onClick={handleCreateProduct}
+                                            disabled={isSavingProduct}
+                                            className="bg-primary text-white font-semibold px-4 py-2 rounded-xl hover:bg-primary/90 disabled:opacity-70"
+                                        >
+                                            {isSavingProduct
+                                                ? "Guardando..."
+                                                : "Guardar producto"}
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() =>
+                                                setShowCreateProduct(false)
+                                            }
+                                            className="bg-surface/70 text-gray-700 font-semibold px-4 py-2 rounded-xl hover:bg-surface"
+                                        >
+                                            Cancelar
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
                         </div>
 
                         <div className="flex flex-col gap-2">
@@ -230,7 +582,7 @@ export default function Report() {
                                     min="0.05"
                                     required
                                     placeholder="0.00"
-                                    className="w-full bg-surface/30 border-2 border-surface p-3.5 pl-8 rounded-xl outline-none focus:border-primary transition-colors text-gray-800 font-bold text-lg"
+                                    className="w-full bg-surface/30 border-2 border-surface p-3 pl-8 rounded-xl outline-none focus:border-primary transition-colors text-gray-800 font-semibold text-base"
                                 />
                             </div>
                         </div>
@@ -242,39 +594,87 @@ export default function Report() {
                             >
                                 Buscar lugar
                             </label>
-                            <input
-                                id="marketSearch"
-                                type="search"
-                                value={marketSearch}
-                                onChange={(e) =>
-                                    setMarketSearch(e.target.value)
-                                }
-                                placeholder="Ej: central, caraguay, sauces"
-                                className="w-full bg-surface/20 border border-surface p-3 rounded-xl outline-none focus:border-primary transition-colors text-gray-800"
-                            />
+                            <div className="relative">
+                                <input
+                                    id="marketSearch"
+                                    type="search"
+                                    value={marketSearch}
+                                    onChange={(e) => {
+                                        setMarketSearch(e.target.value);
+                                        setSelectedMarket("");
+                                        setShowMarketSuggestions(true);
+                                    }}
+                                    onFocus={() =>
+                                        setShowMarketSuggestions(true)
+                                    }
+                                    onBlur={() => {
+                                        window.setTimeout(
+                                            () =>
+                                                setShowMarketSuggestions(false),
+                                            120,
+                                        );
+                                    }}
+                                    onKeyDown={(e) => {
+                                        if (e.key === "Escape") {
+                                            setShowMarketSuggestions(false);
+                                        }
+                                    }}
+                                    placeholder="Ej: central, caraguay, sauces"
+                                    className="w-full bg-surface/20 border border-surface p-3 rounded-xl outline-none focus:border-primary transition-colors text-gray-800"
+                                />
+                                {showMarketSuggestions &&
+                                    marketSuggestions.length > 0 && (
+                                        <ul className="absolute z-20 mt-1 w-full max-h-56 overflow-auto rounded-xl border border-surface bg-white shadow-lg">
+                                            {marketSuggestions.map((market) => (
+                                                <li key={market.id}>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() =>
+                                                            handlePickMarketSuggestion(
+                                                                market,
+                                                            )
+                                                        }
+                                                        className="w-full px-3 py-2 text-left hover:bg-tone transition-colors"
+                                                    >
+                                                        <span className="font-semibold text-gray-800">
+                                                            {market.name}
+                                                        </span>
+                                                        {market.location && (
+                                                            <span className="text-xs text-muted ml-1">
+                                                                (
+                                                                {
+                                                                    market.location
+                                                                }
+                                                                )
+                                                            </span>
+                                                        )}
+                                                    </button>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    )}
+                            </div>
 
                             <label
                                 htmlFor="market"
-                                className="font-semibold text-gray-700 flex justify-between items-end"
+                                className="font-semibold text-gray-700"
                             >
-                                <span>¿En qué lugar?</span>
-                                <button
-                                    type="button"
-                                    onClick={() =>
-                                        toast.info("Autocompletando en MVP v2")
-                                    }
-                                    className="text-primary text-xs font-bold hover:underline"
-                                >
-                                    📍 Usar GPS
-                                </button>
+                                ¿En qué lugar?
                             </label>
                             <select
                                 id="market"
                                 required
                                 value={selectedMarket}
-                                onChange={(e) =>
-                                    setSelectedMarket(e.target.value)
-                                }
+                                onChange={(e) => {
+                                    const selectedId = e.target.value;
+                                    setSelectedMarket(selectedId);
+                                    setShowMarketSuggestions(false);
+
+                                    const market = marketById.get(selectedId);
+                                    if (market) {
+                                        setMarketSearch(market.name);
+                                    }
+                                }}
                                 className="w-full bg-surface/30 border-2 border-surface p-3.5 rounded-xl outline-none focus:border-primary transition-colors text-gray-800"
                             >
                                 {filteredMarkets.length === 0 ? (
@@ -287,7 +687,10 @@ export default function Report() {
                                             Selecciona un lugar...
                                         </option>
                                         {filteredMarkets.map((mkt) => (
-                                            <option key={mkt.id} value={mkt.id}>
+                                            <option
+                                                key={mkt.id}
+                                                value={String(mkt.id)}
+                                            >
                                                 {mkt.name}
                                             </option>
                                         ))}
@@ -304,14 +707,56 @@ export default function Report() {
                             <button
                                 type="button"
                                 onClick={() =>
-                                    toast.info(
-                                        "El modal de nuevo mercado estará disponible pronto.",
-                                    )
+                                    setShowCreateMarket((current) => !current)
                                 }
                                 className="text-left mt-0.5 text-primary text-sm font-semibold hover:underline w-max"
                             >
                                 + Agregar lugar no listado
                             </button>
+
+                            {showCreateMarket && (
+                                <div className="mt-2 rounded-xl border border-surface bg-white/70 p-4 flex flex-col gap-3">
+                                    <input
+                                        type="text"
+                                        value={newMarketName}
+                                        onChange={(e) =>
+                                            setNewMarketName(e.target.value)
+                                        }
+                                        placeholder="Nombre del mercado"
+                                        className="w-full bg-surface/20 border border-surface p-3 rounded-xl outline-none focus:border-primary transition-colors text-gray-800"
+                                    />
+                                    <input
+                                        type="text"
+                                        value={newMarketLocation}
+                                        onChange={(e) =>
+                                            setNewMarketLocation(e.target.value)
+                                        }
+                                        placeholder="Ubicación referencial (opcional)"
+                                        className="w-full bg-surface/20 border border-surface p-3 rounded-xl outline-none focus:border-primary transition-colors text-gray-800"
+                                    />
+                                    <div className="flex gap-2">
+                                        <button
+                                            type="button"
+                                            onClick={handleCreateMarket}
+                                            disabled={isSavingMarket}
+                                            className="bg-primary text-white font-semibold px-4 py-2 rounded-xl hover:bg-primary/90 disabled:opacity-70"
+                                        >
+                                            {isSavingMarket
+                                                ? "Guardando..."
+                                                : "Guardar lugar"}
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() =>
+                                                setShowCreateMarket(false)
+                                            }
+                                            className="bg-surface/70 text-gray-700 font-semibold px-4 py-2 rounded-xl hover:bg-surface"
+                                        >
+                                            Cancelar
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
                         </div>
 
                         <button
