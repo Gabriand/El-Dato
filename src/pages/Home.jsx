@@ -162,7 +162,15 @@ export default function Home() {
         <div className="bg-bg min-h-screen">
             <header>
                 <TopBar />
-                <div className="m-5 lg:m-10 py-3 p-4 border-2 border-surface rounded-2xl flex gap-3 has-focus:border-primary has-focus:bg-tone">
+
+                <div className="px-5 lg:px-10 mt-2 mb-4">
+                    <p className="text-muted text-sm">
+                        Explora los precios reportados por la comunidad y
+                        encuentra la mejor opción para ahorrar hoy.
+                    </p>
+                </div>
+
+                <div className="m-5 lg:mx-10 py-3 p-4 border-2 border-surface rounded-2xl flex gap-3 has-focus:border-primary has-focus:bg-tone">
                     <svg
                         className="text-primary"
                         width="22px"
@@ -242,11 +250,7 @@ export default function Home() {
                                             : "En algo"
                                     }
                                     nombreProd={card.nombreProd}
-                                    lugar={
-                                        hasComparison
-                                            ? `Más barato en ${card.cheapestMarket}`
-                                            : `Reportado en ${card.cheapestMarket}`
-                                    }
+                                    lugar={card.cheapestMarket}
                                     precioActual={card.cheapestPrice}
                                     precioAnterior={
                                         hasComparison

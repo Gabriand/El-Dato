@@ -16,8 +16,23 @@ export default function TopBar() {
 
     return (
         <div className="flex justify-between items-center mt-5 mb-4 px-4 lg:px-10">
-            <Link to="/" className="text-primary text-4xl lg:text-5xl font-bold hover:scale-105 transition-transform">
-                El Dato
+            <Link
+                to="/"
+                className="group flex items-center gap-2.5 text-primary transition-transform hover:scale-105"
+            >
+                <img
+                    src="/brand/logo-64.webp"
+                    srcSet="/brand/logo-48.webp 48w, /brand/logo-64.webp 64w"
+                    sizes="(max-width: 640px) 40px, 52px"
+                    alt="Logo de El Dato"
+                    className="h-10 w-10 rounded-xl border border-surface/80 object-cover shadow-sm sm:h-12 sm:w-12"
+                />
+                <div className="leading-none">
+                    <p className="text-3xl font-extrabold tracking-tight lg:text-4xl">El Dato</p>
+                    <p className="mt-1 hidden text-xs font-semibold text-muted sm:block">
+                        Compara y ahorra cerca de ti
+                    </p>
+                </div>
             </Link>
             <ul className="hidden md:flex gap-8 font-bold text-gray-500 text-lg items-center mt-2">
                 <NavLink to="/" end className={navItemClass}>Inicio</NavLink>

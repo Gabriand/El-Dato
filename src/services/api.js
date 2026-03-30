@@ -177,6 +177,121 @@ export async function getMarketById(id) {
     return { market, reports: reports || [] };
 }
 
+export async function getVoteSummaryByReportIds(reportIds) {
+    const normalizedIds = (reportIds || [])
+        .map((id) => Number(id))
+        .filter((id) => Number.isFinite(id));
+
+    if (normalizedIds.length === 0) return {};
+
+    const { data, error } = await supabase
+        .from("votes")
+        .select("id, report_id, user_id, is_upvote, created_at")
+        .in("report_id", normalizedIds)
+        .order("created_at", { ascending: false })
+        .order("id", { ascending: false });
+
+    if (error) throw error;
+
+    const summary = {};
+    normalizedIds.forEach((id) => {
+        summary[id] = { trueVotes: 0, falseVotes: 0 };
+    });
+
+    // Recuento por usuario: se considera solo el voto mas reciente por (reporte, usuario).
+    const seenUserVoteByReport = new Set();
+
+    (data || []).forEach((vote) => {
+        const reportId = Number(vote.report_id);
+        const userId = String(vote.user_id || "");
+        const uniqueVoteKey = `${reportId}:${userId}`;
+
+        if (seenUserVoteByReport.has(uniqueVoteKey)) {
+            return;
+        }
+
+        seenUserVoteByReport.add(uniqueVoteKey);
+
+        if (!summary[reportId]) {
+            summary[reportId] = { trueVotes: 0, falseVotes: 0 };
+        }
+
+        if (vote.is_upvote) {
+            summary[reportId].trueVotes += 1;
+        } else {
+            summary[reportId].falseVotes += 1;
+        }
+    });
+
+    return summary;
+}
+
+export async function registerVote(reportId, userId, isUpvote) {
+    const normalizedReportId = Number(reportId);
+
+    const { data: existingVotes, error: existingError } = await supabase
+        .from("votes")
+        .select("id, is_upvote")
+        .eq("report_id", normalizedReportId)
+        .eq("user_id", userId)
+        .order("id", { ascending: true });
+
+    if (existingError) throw existingError;
+
+    const existingVote = existingVotes?.[0] || null;
+
+    if (existingVote) {
+        if (existingVotes.length > 1) {
+            const duplicatedIds = existingVotes
+                .slice(1)
+                .map((vote) => vote.id)
+                .filter((id) => Number.isFinite(Number(id)));
+
+            if (duplicatedIds.length > 0) {
+                const { error: cleanupError } = await supabase
+                    .from("votes")
+                    .delete()
+                    .in("id", duplicatedIds);
+
+                if (cleanupError) throw cleanupError;
+            }
+        }
+
+        if (existingVote.is_upvote === isUpvote) {
+            return {
+                previousVote: existingVote.is_upvote,
+                currentVote: isUpvote,
+                changed: false,
+            };
+        }
+
+        const { error: updateError } = await supabase
+            .from("votes")
+            .update({ is_upvote: isUpvote })
+            .eq("id", existingVote.id);
+
+        if (updateError) throw updateError;
+
+        return {
+            previousVote: existingVote.is_upvote,
+            currentVote: isUpvote,
+            changed: true,
+        };
+    }
+
+    const { error: insertError } = await supabase.from("votes").insert([
+        {
+            report_id: normalizedReportId,
+            user_id: userId,
+            is_upvote: isUpvote,
+        },
+    ]);
+
+    if (insertError) throw insertError;
+
+    return { previousVote: null, currentVote: isUpvote, changed: true };
+}
+
 export async function getFavoriteProductIds(userId) {
     const { data, error } = await supabase
         .from("favorites")

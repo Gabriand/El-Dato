@@ -7,6 +7,8 @@ import {
     addFavorite,
     getFavoriteProductIds,
     getProductById,
+    getVoteSummaryByReportIds,
+    registerVote,
     removeFavorite,
 } from "../services/api";
 import { normalizeCityCode } from "../utils/city";
@@ -20,6 +22,7 @@ export default function ProductDetail() {
     const [reports, setReports] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isFavorite, setIsFavorite] = useState(false);
+    const [voteStatsByReport, setVoteStatsByReport] = useState({});
 
     useEffect(() => {
         const loadProduct = async () => {
@@ -61,14 +64,130 @@ export default function ProductDetail() {
         loadFavoriteStatus();
     }, [user, id]);
 
-    const handleVote = () => {
+    useEffect(() => {
+        let isMounted = true;
+
+        const loadVoteSummary = async () => {
+            if (!reports.length) {
+                setVoteStatsByReport({});
+                return;
+            }
+
+            try {
+                const summary = await getVoteSummaryByReportIds(
+                    reports.map((report) => report.id),
+                );
+                if (isMounted) {
+                    setVoteStatsByReport(summary);
+                }
+            } catch (error) {
+                console.error("Error cargando votos:", error);
+                if (isMounted) {
+                    setVoteStatsByReport({});
+                }
+            }
+        };
+
+        loadVoteSummary();
+
+        return () => {
+            isMounted = false;
+        };
+    }, [reports]);
+
+    const handleVote = async (reportId, voteType) => {
         if (!user) {
             toast.info("Inicia sesión para poder validar precios", {
                 position: "top-center",
             });
             return;
         }
-        toast.success("Voto registrado con éxito", { position: "top-center" });
+
+        const isUpvote = voteType === "true";
+
+        try {
+            const result = await registerVote(reportId, user.id, isUpvote);
+
+            setVoteStatsByReport((prev) => {
+                const currentStats = prev[reportId] || {
+                    trueVotes: 0,
+                    falseVotes: 0,
+                };
+
+                let nextTrueVotes = currentStats.trueVotes;
+                let nextFalseVotes = currentStats.falseVotes;
+
+                if (result.previousVote === null) {
+                    if (isUpvote) {
+                        nextTrueVotes += 1;
+                    } else {
+                        nextFalseVotes += 1;
+                    }
+                } else if (result.previousVote !== isUpvote) {
+                    if (isUpvote) {
+                        nextTrueVotes += 1;
+                        nextFalseVotes = Math.max(0, nextFalseVotes - 1);
+                    } else {
+                        nextFalseVotes += 1;
+                        nextTrueVotes = Math.max(0, nextTrueVotes - 1);
+                    }
+                }
+
+                return {
+                    ...prev,
+                    [reportId]: {
+                        trueVotes: nextTrueVotes,
+                        falseVotes: nextFalseVotes,
+                    },
+                };
+            });
+
+            if (!result.changed) {
+                toast.info("Ya habías votado esta opción", {
+                    position: "top-center",
+                });
+                return;
+            }
+
+            toast.success("Voto registrado con éxito", {
+                position: "top-center",
+            });
+        } catch (error) {
+            console.error("Error registrando voto:", error);
+            const isRlsError =
+                error?.code === "42501" ||
+                String(error?.message || "")
+                    .toLowerCase()
+                    .includes("row-level security");
+
+            toast.error("No se pudo registrar tu voto", {
+                position: "top-center",
+            });
+
+            if (isRlsError) {
+                toast.info("Faltan politicas RLS para la tabla votes", {
+                    position: "top-center",
+                });
+            }
+        }
+    };
+
+    const getVotePercentages = (reportId) => {
+        const stats = voteStatsByReport[reportId] || {
+            trueVotes: 0,
+            falseVotes: 0,
+        };
+        const totalVotes = stats.trueVotes + stats.falseVotes;
+
+        if (totalVotes === 0) {
+            return { truePercent: 0, falsePercent: 0 };
+        }
+
+        const truePercent = Math.round((stats.trueVotes / totalVotes) * 100);
+        return {
+            truePercent,
+            falsePercent: 100 - truePercent,
+        };
     };
 
     const handleSave = async () => {
@@ -221,10 +340,13 @@ export default function ProductDetail() {
                         {reports.map((report, idx) => {
                             const isCheapest =
                                 parseFloat(report.price) === minPrice;
+                            const { truePercent, falsePercent } =
+                                getVotePercentages(report.id);
+
                             return (
                                 <li
                                     key={report.id}
-                                    className={`flex justify-between items-center group pt-2 pb-3 ${idx < reports.length - 1 ? "border-b border-surface" : ""}`}
+                                    className={`group flex flex-col gap-3 pt-2 pb-3 sm:flex-row sm:items-center sm:justify-between ${idx < reports.length - 1 ? "border-b border-surface" : ""}`}
                                 >
                                     <div className="flex flex-col">
                                         <span className="font-semibold text-gray-700">
@@ -240,33 +362,53 @@ export default function ProductDetail() {
                                             </span>
                                         )}
                                     </div>
-                                    <div className="flex flex-col items-end gap-1.5 mt-2">
+                                    <div className="mt-1 flex w-full flex-col gap-1.5 sm:mt-2 sm:w-auto sm:items-end">
                                         <span
-                                            className={`text-xl font-bold ${isCheapest ? "text-primary" : "text-gray-800"}`}
+                                            className={`self-end text-xl font-bold ${isCheapest ? "text-primary" : "text-gray-800"}`}
                                         >
                                             $
                                             {parseFloat(report.price).toFixed(
                                                 2,
                                             )}
                                         </span>
-                                        <div className="flex items-center gap-2 mt-2">
+                                        <div className="mt-1 grid w-full grid-cols-2 gap-2 sm:mt-2 sm:flex sm:w-auto sm:items-center">
                                             <button
-                                                onClick={handleVote}
-                                                className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-bg border border-surface text-gray-700 hover:border-green-300 hover:text-green-700 hover:bg-green-50 transition-all cursor-pointer font-bold shadow-sm text-sm active:scale-95"
+                                                onClick={() =>
+                                                    handleVote(
+                                                        report.id,
+                                                        "true",
+                                                    )
+                                                }
+                                                className="flex min-w-0 w-full items-center justify-center gap-1 rounded-xl border border-surface bg-bg px-2 py-2 text-xs font-bold text-gray-700 shadow-sm transition-all active:scale-95 hover:border-green-300 hover:bg-green-50 hover:text-green-700 sm:w-auto sm:gap-1.5 sm:px-3 sm:text-sm"
                                             >
-                                                <span className="text-lg">
+                                                <span className="text-base sm:text-lg">
                                                     👍
-                                                </span>{" "}
-                                                Cierto
+                                                </span>
+                                                <span className="truncate">
+                                                    Cierto
+                                                </span>
+                                                <span className="rounded-md bg-greenb px-1.5 py-0.5 text-xs font-extrabold text-greent">
+                                                    {truePercent}%
+                                                </span>
                                             </button>
                                             <button
-                                                onClick={handleVote}
-                                                className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-bg border border-surface text-gray-700 hover:border-red-300 hover:text-red-700 hover:bg-red-50 transition-all cursor-pointer font-bold shadow-sm text-sm active:scale-95"
+                                                onClick={() =>
+                                                    handleVote(
+                                                        report.id,
+                                                        "false",
+                                                    )
+                                                }
+                                                className="flex min-w-0 w-full items-center justify-center gap-1 rounded-xl border border-surface bg-bg px-2 py-2 text-xs font-bold text-gray-700 shadow-sm transition-all active:scale-95 hover:border-red-300 hover:bg-red-50 hover:text-red-700 sm:w-auto sm:gap-1.5 sm:px-3 sm:text-sm"
                                             >
-                                                <span className="text-lg">
+                                                <span className="text-base sm:text-lg">
                                                     👎
-                                                </span>{" "}
-                                                Falso
+                                                </span>
+                                                <span className="truncate">
+                                                    Falso
+                                                </span>
+                                                <span className="rounded-md bg-redb px-1.5 py-0.5 text-xs font-extrabold text-redt">
+                                                    {falsePercent}%
+                                                </span>
                                             </button>
                                         </div>
                                     </div>
