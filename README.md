@@ -105,7 +105,6 @@ npm run dev
 - Se configuraron las variables de entorno de Supabase para el build de Vite.
 - Se generó la versión de producción con `npm run build`.
 - Se publicó la carpeta `dist/` en el servidor con Nginx y fallback SPA (`/index.html`) para React Router.
-- Demo pública: https://vps23813.cubepath.net/
 
 ## ⚖️ Licencia
 
