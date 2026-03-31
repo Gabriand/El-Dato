@@ -4,6 +4,7 @@ import NavBar from "../components/NavBar";
 import ProductCard from "../components/ProductCard";
 import TopBar from "../components/TopBar";
 import EmptyState from "../components/EmptyState";
+import GuestCitySelector from "../components/GuestCitySelector";
 import {
     addFavorite,
     getFavoriteProductIds,
@@ -12,9 +13,22 @@ import {
     removeFavorite,
 } from "../services/api";
 import { useAuth } from "../context/AuthContext";
-import { normalizeCityCode } from "../utils/city";
+import {
+    ECUADOR_CITY_OPTIONS,
+    getCityLabel,
+    normalizeCityCode,
+} from "../utils/city";
 import { toast } from "sonner";
 import useInfiniteCardLoader from "../hooks/useInfiniteCardLoader";
+
+const GUEST_CITY_STORAGE_KEY = "el-dato-guest-city";
+
+const getInitialGuestCity = () => {
+    if (typeof window === "undefined") return normalizeCityCode();
+    return normalizeCityCode(
+        window.localStorage.getItem(GUEST_CITY_STORAGE_KEY),
+    );
+};
 
 const normalizeText = (value) =>
     String(value || "")
@@ -92,9 +106,20 @@ export default function Home() {
     const [isLoadingMoreReports, setIsLoadingMoreReports] = useState(false);
     const [reportsPageSize, setReportsPageSize] = useState(getHomePageSize);
     const [priceStatsByProduct, setPriceStatsByProduct] = useState({});
+    const [guestCity, setGuestCity] = useState(getInitialGuestCity);
     const backendSentinelRef = useRef(null);
 
-    const userCity = normalizeCityCode(profile?.city);
+    const cityFromProfile = profile?.city
+        ? normalizeCityCode(profile.city)
+        : null;
+    const userCity = cityFromProfile || guestCity;
+    const cityLabel = getCityLabel(userCity);
+    const isGuestView = !user;
+
+    useEffect(() => {
+        if (typeof window === "undefined") return;
+        window.localStorage.setItem(GUEST_CITY_STORAGE_KEY, guestCity);
+    }, [guestCity]);
 
     useEffect(() => {
         const handleResize = () => {
@@ -117,6 +142,7 @@ export default function Home() {
                 offset: 0,
                 limit: reportsPageSize,
                 withMeta: true,
+                allowGlobalFallback: false,
             });
 
             const productIds = Array.from(
@@ -154,6 +180,7 @@ export default function Home() {
                 offset: nextOffset,
                 limit: reportsPageSize,
                 withMeta: true,
+                allowGlobalFallback: false,
             });
 
             setReports((previous) =>
@@ -367,12 +394,39 @@ export default function Home() {
             <header>
                 <TopBar />
 
-                <div className="px-5 lg:px-10 mt-2 mb-4">
-                    <p className="text-muted text-sm">
-                        Explora los precios reportados por la comunidad y
-                        encuentra la mejor opción para ahorrar hoy.
-                    </p>
+                <div className="px-5 lg:px-10 mt-2 mb-4 lg:flex lg:items-start lg:justify-between lg:gap-6">
+                    <div className="lg:max-w-2xl">
+                        <p className="text-muted text-sm">
+                            Explora precios reportados por la comunidad en
+                            Ecuador y encuentra la mejor opción para ahorrar
+                            hoy.
+                        </p>
+                        <p className="text-xs font-semibold text-primary mt-1">
+                            Mostrando datos de {cityLabel}, Ecuador.
+                        </p>
+                    </div>
+
+                    {isGuestView && (
+                        <GuestCitySelector
+                            cityOptions={ECUADOR_CITY_OPTIONS}
+                            activeCityCode={userCity}
+                            activeCityLabel={cityLabel}
+                            onSelectCity={setGuestCity}
+                            desktopInline
+                        />
+                    )}
                 </div>
+
+                {isGuestView && (
+                    <div className="sm:hidden">
+                        <GuestCitySelector
+                            cityOptions={ECUADOR_CITY_OPTIONS}
+                            activeCityCode={userCity}
+                            activeCityLabel={cityLabel}
+                            onSelectCity={setGuestCity}
+                        />
+                    </div>
+                )}
 
                 <div className="m-5 lg:mx-10 py-3 p-4 border-2 border-surface rounded-2xl flex gap-3 has-focus:border-primary has-focus:bg-tone">
                     <svg
@@ -433,7 +487,7 @@ export default function Home() {
                 <section className="pb-10 lg:flex lg:flex-wrap">
                     {isLoading ? (
                         <div className="w-full pt-10 flex justify-center text-muted font-bold">
-                            Cargando reportes de tu localidad...
+                            Cargando reportes de {cityLabel}, Ecuador...
                         </div>
                     ) : filteredCards.length > 0 ? (
                         <>
@@ -495,8 +549,8 @@ export default function Home() {
                                 title="No hay reportes recientes"
                                 description={
                                     searchTerm
-                                        ? `Aún nadie ha reportado precios para "${searchTerm}" el día de hoy en tu localidad.`
-                                        : `Aún no hay reportes en tu localidad de esta categoría.`
+                                        ? `Aún nadie ha reportado precios para "${searchTerm}" hoy en ${cityLabel}, Ecuador.`
+                                        : `Aún no hay reportes en ${cityLabel}, Ecuador para esta categoría.`
                                 }
                             />
                         </div>

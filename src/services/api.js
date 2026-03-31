@@ -143,7 +143,8 @@ export async function createMarket({ name, location, city }) {
     return data;
 }
 
-export async function getMarkets(city) {
+export async function getMarkets(city, options = {}) {
+    const { allowGlobalFallback = false } = options;
     const cityCode = normalizeCityCode(city);
     const cityAliases = getCityAliases(cityCode);
 
@@ -158,7 +159,7 @@ export async function getMarkets(city) {
     );
     if (error) throw error;
 
-    if (!data || data.length === 0) {
+    if ((!data || data.length === 0) && allowGlobalFallback) {
         const { data: fallbackData, error: fallbackError } = await withTimeout(
             supabase.from("markets").select("*").order("name"),
             REQUEST_TIMEOUT_MS,
@@ -177,6 +178,7 @@ export async function getRecentReports(city, options = {}) {
         offset = 0,
         limit = DEFAULT_RECENT_REPORTS_LIMIT,
         withMeta = false,
+        allowGlobalFallback = false,
     } = options;
 
     const normalizedOffset = Number.isFinite(offset)
@@ -210,7 +212,7 @@ export async function getRecentReports(city, options = {}) {
 
     if (result.error) throw result.error;
 
-    if (!result.data || result.data.length === 0) {
+    if ((!result.data || result.data.length === 0) && allowGlobalFallback) {
         usedGlobalFallback = true;
         result = await queryRecentReports({
             cityAliases,

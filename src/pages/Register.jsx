@@ -79,7 +79,8 @@ export default function Register() {
                     Crear Cuenta
                 </h1>
                 <p className="text-muted text-center mb-10">
-                    Únete a la comunidad local y reporta precios justos.
+                    Únete a la comunidad local de Ecuador y reporta precios
+                    justos.
                 </p>
 
                 <form
@@ -107,7 +108,7 @@ export default function Register() {
 
                     <div className="flex flex-col gap-1.5">
                         <label className="font-semibold text-gray-700 ml-1">
-                            Localidad
+                            Ciudad (Ecuador)
                         </label>
                         <select
                             required
@@ -116,7 +117,7 @@ export default function Register() {
                             className="w-full bg-surface/30 border-2 border-surface p-3.5 rounded-xl outline-none focus:border-primary transition-colors text-gray-800"
                         >
                             <option value="" disabled>
-                                Selecciona tu localidad
+                                Selecciona tu ciudad en Ecuador
                             </option>
                             <option value="gye">Guayaquil</option>
                             <option value="uio">Quito</option>

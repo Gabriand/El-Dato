@@ -1,6 +1,6 @@
 # 📍 El Dato - ¡Pilas con el ahorro!
 
-> **El Dato** es una red comunitaria para reportar, comparar y validar precios reales de mercados locales por localidad.
+> **El Dato** es una red comunitaria enfocada en Ecuador para reportar, comparar y validar precios reales por ciudad.
 
 Proyecto desarrollado para la **Hackatón CubePath 2026**.
 
@@ -35,7 +35,7 @@ En tiempos de economía variable, comparar precios reales hace diferencia. El Da
 - Votar la confiabilidad de los reportes.
 - Guardar productos clave en su canasta base.
 
-Actualmente, el proyecto trabaja con localidades como **Guayaquil, Quito y Cuenca** (arquitectura extensible a más ciudades).
+Actualmente, el proyecto trabaja con ciudades de Ecuador como **Guayaquil, Quito y Cuenca** (arquitectura extensible a más ciudades del país).
 
 ## ✨ Funcionalidades principales
 
@@ -100,7 +100,7 @@ npm run dev
 
 ## ☁️ Implementación en CubePath
 
-- Se creó un VPS en CubePath para publicar la aplicación.
+- Se creó un VPS en CubePath para publicar la aplicación enfocada en ciudades de Ecuador.
 - En el servidor se instaló Node.js, se clonó este repositorio y se ejecutó `npm install`.
 - Se configuraron las variables de entorno de Supabase para el build de Vite.
 - Se generó la versión de producción con `npm run build`.

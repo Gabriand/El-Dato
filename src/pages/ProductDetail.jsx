@@ -13,6 +13,8 @@ import {
 } from "../services/api";
 import { normalizeCityCode } from "../utils/city";
 
+const GUEST_CITY_STORAGE_KEY = "el-dato-guest-city";
+
 export default function ProductDetail() {
     const { id } = useParams();
     const navigate = useNavigate();
@@ -24,11 +26,21 @@ export default function ProductDetail() {
     const [isFavorite, setIsFavorite] = useState(false);
     const [voteStatsByReport, setVoteStatsByReport] = useState({});
 
+    const cityFromProfile = profile?.city
+        ? normalizeCityCode(profile.city)
+        : null;
+    const cityFromGuestStorage =
+        typeof window === "undefined"
+            ? normalizeCityCode()
+            : normalizeCityCode(
+                  window.localStorage.getItem(GUEST_CITY_STORAGE_KEY),
+              );
+    const userCity = cityFromProfile || cityFromGuestStorage;
+
     useEffect(() => {
         const loadProduct = async () => {
             setIsLoading(true);
             try {
-                const userCity = normalizeCityCode(profile?.city);
                 const { product, reports } = await getProductById(id, userCity);
                 setProduct(product);
                 setReports(reports);
@@ -44,7 +56,7 @@ export default function ProductDetail() {
         if (profile !== undefined) {
             loadProduct();
         }
-    }, [id, profile, navigate]);
+    }, [id, navigate, profile, userCity]);
 
     useEffect(() => {
         const loadFavoriteStatus = async () => {

@@ -7,6 +7,14 @@ const CITY_CODE_MAP = {
     cue: "cue",
 };
 
+export const DEFAULT_CITY_CODE = "gye";
+
+export const ECUADOR_CITY_OPTIONS = [
+    { code: "gye", label: "Guayaquil" },
+    { code: "uio", label: "Quito" },
+    { code: "cue", label: "Cuenca" },
+];
+
 const CITY_LABEL_MAP = {
     gye: "Guayaquil",
     uio: "Quito",
@@ -24,8 +32,8 @@ export function normalizeCityCode(cityValue) {
         .trim()
         .toLowerCase();
 
-    if (!normalized) return "gye";
-    return CITY_CODE_MAP[normalized] || "gye";
+    if (!normalized) return DEFAULT_CITY_CODE;
+    return CITY_CODE_MAP[normalized] || DEFAULT_CITY_CODE;
 }
 
 export function getCityLabel(cityValue) {

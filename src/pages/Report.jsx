@@ -109,7 +109,9 @@ export default function Report() {
                 const [productsData, marketsData, categoriesData] =
                     await Promise.all([
                         getProducts(),
-                        getMarkets(userCity),
+                        getMarkets(userCity, {
+                            allowGlobalFallback: false,
+                        }),
                         getCategories(),
                     ]);
                 setProducts(productsData || []);

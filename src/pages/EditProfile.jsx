@@ -189,7 +189,7 @@ export default function EditProfile() {
 
                     <div className="flex flex-col gap-2">
                         <label className="font-semibold text-gray-700 ml-1">
-                            Localidad
+                            Ciudad (Ecuador)
                         </label>
                         <select
                             required

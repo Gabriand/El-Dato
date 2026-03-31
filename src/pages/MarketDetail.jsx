@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { useAuth } from "../context/AuthContext";
 import { useState, useEffect } from "react";
 import { getMarketById } from "../services/api";
+import { getCityLabel } from "../utils/city";
 
 export default function MarketDetail() {
     const { id } = useParams();
@@ -110,12 +111,7 @@ export default function MarketDetail() {
                             {market.name}
                         </h2>
                         <span className="text-muted font-semibold text-sm uppercase">
-                            Localidad:{" "}
-                            {market.city === "uio"
-                                ? "Quito"
-                                : market.city === "cue"
-                                  ? "Cuenca"
-                                  : "Tu localidad"}
+                            Localidad: {getCityLabel(market.city)}, Ecuador
                         </span>
                     </div>
                 </div>

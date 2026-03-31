@@ -45,8 +45,8 @@ export default function Welcome() {
                         </span>
                     </h1>
                     <p className="text-muted text-base sm:text-lg lg:text-xl font-medium leading-relaxed">
-                        La red ciudadana de tu localidad para ganarle a la
-                        especulación.
+                        La red ciudadana de Ecuador para ganarle a la
+                        especulación en tu ciudad.
                     </p>
                 </div>
 

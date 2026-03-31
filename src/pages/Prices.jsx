@@ -2,6 +2,7 @@ import NavBar from "../components/NavBar";
 import TopBar from "../components/TopBar";
 import FilterBar from "../components/FilterBar";
 import EmptyState from "../components/EmptyState";
+import GuestCitySelector from "../components/GuestCitySelector";
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { Link } from "react-router-dom";
 import {
@@ -13,8 +14,21 @@ import {
 } from "../services/api";
 import { useAuth } from "../context/AuthContext";
 import { toast } from "sonner";
-import { normalizeCityCode } from "../utils/city";
+import {
+    ECUADOR_CITY_OPTIONS,
+    getCityLabel,
+    normalizeCityCode,
+} from "../utils/city";
 import useInfiniteCardLoader from "../hooks/useInfiniteCardLoader";
+
+const GUEST_CITY_STORAGE_KEY = "el-dato-guest-city";
+
+const getInitialGuestCity = () => {
+    if (typeof window === "undefined") return normalizeCityCode();
+    return normalizeCityCode(
+        window.localStorage.getItem(GUEST_CITY_STORAGE_KEY),
+    );
+};
 
 const normalizeText = (value) =>
     String(value || "")
@@ -91,9 +105,20 @@ export default function Prices() {
     const [hasMoreReports, setHasMoreReports] = useState(false);
     const [isLoadingMoreReports, setIsLoadingMoreReports] = useState(false);
     const [reportsPageSize, setReportsPageSize] = useState(getPricesPageSize);
+    const [guestCity, setGuestCity] = useState(getInitialGuestCity);
     const backendSentinelRef = useRef(null);
 
-    const userCity = normalizeCityCode(profile?.city || "gye");
+    const cityFromProfile = profile?.city
+        ? normalizeCityCode(profile.city)
+        : null;
+    const userCity = cityFromProfile || guestCity;
+    const cityLabel = getCityLabel(userCity);
+    const isGuestView = !user;
+
+    useEffect(() => {
+        if (typeof window === "undefined") return;
+        window.localStorage.setItem(GUEST_CITY_STORAGE_KEY, guestCity);
+    }, [guestCity]);
 
     useEffect(() => {
         const handleResize = () => {
@@ -116,6 +141,7 @@ export default function Prices() {
                 offset: 0,
                 limit: reportsPageSize,
                 withMeta: true,
+                allowGlobalFallback: false,
             });
 
             setReports(result.data || []);
@@ -218,6 +244,7 @@ export default function Prices() {
                 offset: nextOffset,
                 limit: reportsPageSize,
                 withMeta: true,
+                allowGlobalFallback: false,
             });
 
             setReports((previous) =>
@@ -376,15 +403,41 @@ export default function Prices() {
             </header>
 
             <main className="pb-24 lg:pb-10">
-                <div className="mb-6 px-4 lg:px-10 mt-4">
-                    <h2 className="text-3xl font-bold text-gray-800 mb-2">
-                        Comparar Precios
-                    </h2>
-                    <p className="text-muted text-sm">
-                        Encuentra dónde está más barato cada producto hoy en tu
-                        localidad.
-                    </p>
+                <div className="mb-3 lg:mb-6 px-4 lg:px-10 mt-4 lg:flex lg:items-start lg:justify-between lg:gap-6">
+                    <div className="lg:max-w-2xl">
+                        <h2 className="text-3xl font-bold text-gray-800 mb-2">
+                            Comparar Precios
+                        </h2>
+                        <p className="text-muted text-sm">
+                            Encuentra dónde está más barato cada producto en tu
+                            ciudad de Ecuador.
+                        </p>
+                        <p className="text-xs font-semibold text-primary mt-1">
+                            Mostrando datos de {cityLabel}, Ecuador.
+                        </p>
+                    </div>
+
+                    {isGuestView && (
+                        <GuestCitySelector
+                            cityOptions={ECUADOR_CITY_OPTIONS}
+                            activeCityCode={userCity}
+                            activeCityLabel={cityLabel}
+                            onSelectCity={setGuestCity}
+                            desktopInline
+                        />
+                    )}
                 </div>
+
+                {isGuestView && (
+                    <div className="sm:hidden">
+                        <GuestCitySelector
+                            cityOptions={ECUADOR_CITY_OPTIONS}
+                            activeCityCode={userCity}
+                            activeCityLabel={cityLabel}
+                            onSelectCity={setGuestCity}
+                        />
+                    </div>
+                )}
 
                 <div className="mb-6">
                     <FilterBar
@@ -397,7 +450,7 @@ export default function Prices() {
                 <section className="flex flex-col gap-6 px-4 lg:px-10 lg:grid lg:grid-cols-2">
                     {isLoading ? (
                         <div className="w-full text-center py-10 text-primary font-bold lg:col-span-2">
-                            Analizando precios en tu localidad...
+                            Analizando precios en {cityLabel}, Ecuador...
                         </div>
                     ) : filteredComparisons.length > 0 ? (
                         <>
@@ -551,8 +604,8 @@ export default function Prices() {
                                 title="No hay datos suficientes"
                                 description={
                                     activeCategory === "Todos"
-                                        ? "Aún no se han reportado suficientes precios en tu localidad para hacer una comparación hoy."
-                                        : `Aún no se han reportado precios para la categoría "${activeCategory}" hoy.`
+                                        ? `Aún no se han reportado suficientes precios en ${cityLabel}, Ecuador para comparar hoy.`
+                                        : `Aún no se han reportado precios para la categoría "${activeCategory}" hoy en ${cityLabel}, Ecuador.`
                                 }
                             />
                         </div>
