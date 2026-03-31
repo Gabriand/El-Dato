@@ -8,24 +8,25 @@ Proyecto desarrollado para la **Hackatón CubePath 2026**.
 
 ## 🚀 Demo
 
-- Demo en CubePath: PENDIENTE_AGREGAR_URL_PUBLICA
+- Demo en CubePath: https://vps23813.cubepath.net/
 - Video demo (GIF): [docs/gifs/demo.gif](docs/gifs/demo.gif)
 
 ## 📸 Capturas / GIF
 
-| Home | Comparar | Reportar | Perfil |
-| --- | --- | --- | --- |
-| <img src="docs/capturas/01-home.png" alt="Home" width="180" /> | <img src="docs/capturas/02-comparar.png" alt="Comparar" width="180" /> | <img src="docs/capturas/03-reportar.png" alt="Reportar" width="180" /> | <img src="docs/capturas/04-perfil.png" alt="Perfil" width="180" /> |
+| Home | Comparar | Reportar |
+| --- | --- | --- |
+| <img src="docs/capturas/01-home.png" alt="Home" width="180" /> | <img src="docs/capturas/02-comparar.png" alt="Comparar" width="180" /> | <img src="docs/capturas/03-reportar.png" alt="Reportar" width="180" /> |
 
-| Canasta |
-| --- |
-| <img src="docs/capturas/05-canasta.png" alt="Canasta" width="180" /> |
+| Perfil | Canasta |
+| --- | --- |
+| <img src="docs/capturas/04-perfil.png" alt="Perfil" width="180" /> | <img src="docs/capturas/05-canasta.png" alt="Canasta" width="180" /> |
 
 ### 🎬 Demo GIF
 
 <img src="docs/gifs/demo.gif" alt="Demo GIF" width="230" />
 
 ## 🧐 ¿Qué es El Dato?
+
 En tiempos de economía variable, comparar precios reales hace diferencia. El Dato permite a la comunidad:
 
 - Consultar precios reportados por otros usuarios.
