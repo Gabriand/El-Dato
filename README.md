@@ -98,6 +98,15 @@ VITE_SUPABASE_PUBLISHABLE_DEFAULT_KEY=tu_key
 npm run dev
 ```
 
+## ☁️ Implementación en CubePath
+
+- Se creó un VPS en CubePath para publicar la aplicación.
+- En el servidor se instaló Node.js, se clonó este repositorio y se ejecutó `npm install`.
+- Se configuraron las variables de entorno de Supabase para el build de Vite.
+- Se generó la versión de producción con `npm run build`.
+- Se publicó la carpeta `dist/` en el servidor con Nginx y fallback SPA (`/index.html`) para React Router.
+- Demo pública: https://vps23813.cubepath.net/
+
 ## ⚖️ Licencia
 
 Este proyecto está bajo licencia [MIT](LICENSE).
